@@ -59,7 +59,8 @@ export default function BookPage() {
       ...pending,
       passenger,
       price: (pending.price || 0) + extras,
-      // Store selection on pending for payment page (not typed but safe)
+      seat,
+      baggage,
     });
     router.push("/payment");
   };

@@ -71,6 +71,8 @@ export default function PaymentPage() {
       passenger: pending.passenger || name,
       price: pending.price || 0,
       createdAt: new Date().toISOString(),
+      seat: pending.seat ?? null,
+      baggage: !!pending.baggage,
     });
     setPending(null);
     router.push(`/confirmation?id=${id}`);

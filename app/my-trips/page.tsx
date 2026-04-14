@@ -102,6 +102,8 @@ export default function MyTripsPage() {
               {header("from", "From")}
               {header("to", "To")}
               {header("date", "Date")}
+              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Seat</th>
+              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Bag</th>
               {header("price", "Price")}
             </tr>
           </thead>
@@ -112,12 +114,14 @@ export default function MyTripsPage() {
                 <td className="px-3 py-2">{b.from}</td>
                 <td className="px-3 py-2">{b.to}</td>
                 <td className="px-3 py-2">{b.date}</td>
+                <td className="px-3 py-2 font-mono text-xs">{b.seat || "—"}</td>
+                <td className="px-3 py-2 text-xs">{b.baggage ? "Yes" : "No"}</td>
                 <td className="px-3 py-2 font-semibold">${b.price}</td>
               </tr>
             ))}
             {pageSlice.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-sm text-slate-500">
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-500">
                   No matching trips
                 </td>
               </tr>

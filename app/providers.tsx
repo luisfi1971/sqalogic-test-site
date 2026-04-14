@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
+import { sha256 } from "./lib/hash";
 
 type User = { email: string; name: string };
 
@@ -14,14 +15,14 @@ type AuthCtx = {
 
 type ReleaseCtx = {
   release: number;
-  bump: () => void;
+  bump: () => Promise<void>;
   dynId: (base: string) => string;
   dynClass: (base: string) => string;
   attrs: (base: string) => Record<string, string | undefined>;
   randomDelay: () => Promise<void>;
 };
 
-type Booking = {
+export type Booking = {
   id: string;
   flightId: string;
   from: string;
@@ -30,6 +31,8 @@ type Booking = {
   passenger: string;
   price: number;
   createdAt: string;
+  seat?: string | null;
+  baggage?: boolean;
 };
 
 type BookingCtx = {
@@ -67,17 +70,42 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const [pending, setPending] = useState<Partial<Booking> | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load session user + release counter from localStorage (UI-only state)
   useEffect(() => {
     try {
       const u = localStorage.getItem("sqa_user");
       if (u) setUser(JSON.parse(u));
-      const r = localStorage.getItem("sqa_release");
-      if (r) setRelease(parseInt(r, 10) || 1);
     } catch {}
   }, []);
 
-  // Load bookings from Supabase whenever the user changes
+  // Load global release counter + subscribe to changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("release_state")
+        .select("release")
+        .eq("id", 1)
+        .maybeSingle();
+      if (!cancelled && data) setRelease(data.release);
+    })();
+    const channel = supabase
+      .channel("release-state-rt")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "release_state" },
+        (payload) => {
+          const next = (payload.new as { release?: number })?.release;
+          if (typeof next === "number") setRelease(next);
+        }
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Load bookings per user
   useEffect(() => {
     if (!user) {
       setBookings([]);
@@ -106,6 +134,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               passenger: b.passenger,
               price: Number(b.price),
               createdAt: b.created_at,
+              seat: b.seat ?? null,
+              baggage: !!b.baggage,
             }))
           );
         }
@@ -121,32 +151,35 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     if (!name || !email || !password) return { ok: false, error: "All fields are required" };
     if (password.length < 6) return { ok: false, error: "Password must be at least 6 characters" };
 
+    const emailLc = email.toLowerCase();
     const { data: existing } = await supabase
       .from("users")
       .select("email")
-      .eq("email", email.toLowerCase())
+      .eq("email", emailLc)
       .maybeSingle();
     if (existing) return { ok: false, error: "Email already registered" };
 
-    const { error } = await supabase
-      .from("users")
-      .insert({ name, email: email.toLowerCase(), password });
+    const hashed = await sha256(password);
+    const { error } = await supabase.from("users").insert({ name, email: emailLc, password: hashed });
     if (error) return { ok: false, error: error.message };
 
-    const u = { name, email: email.toLowerCase() };
+    const u = { name, email: emailLc };
     setUser(u);
     localStorage.setItem("sqa_user", JSON.stringify(u));
     return { ok: true };
   };
 
   const login: AuthCtx["login"] = async (email, password) => {
+    const emailLc = email.toLowerCase();
     const { data, error } = await supabase
       .from("users")
       .select("name, email, password")
-      .eq("email", email.toLowerCase())
+      .eq("email", emailLc)
       .maybeSingle();
     if (error) return { ok: false, error: error.message };
-    if (!data || data.password !== password) return { ok: false, error: "Invalid credentials" };
+    if (!data) return { ok: false, error: "Invalid credentials" };
+    const hashed = await sha256(password);
+    if (data.password !== hashed) return { ok: false, error: "Invalid credentials" };
     const u = { name: data.name, email: data.email };
     setUser(u);
     localStorage.setItem("sqa_user", JSON.stringify(u));
@@ -169,6 +202,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       passenger: b.passenger,
       price: b.price,
       created_at: b.createdAt,
+      seat: b.seat ?? null,
+      baggage: !!b.baggage,
     };
     const { error } = await supabase.from("bookings").insert(row);
     if (error) {
@@ -178,13 +213,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     setBookings((prev) => [b, ...prev]);
   };
 
-  const bump = useCallback(() => {
-    setRelease((r) => {
-      const next = r + 1;
-      localStorage.setItem("sqa_release", String(next));
-      return next;
-    });
-  }, []);
+  const bump = useCallback(async () => {
+    const next = release + 1;
+    setRelease(next); // optimistic
+    const { error } = await supabase
+      .from("release_state")
+      .update({ release: next, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    if (error) console.error("[release] bump error:", error);
+  }, [release]);
 
   const dynId = useCallback(
     (base: string) => `${base}_v${release}_${hash(base + release)}`,
@@ -194,7 +231,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     (base: string) => `${base}-x${hash(base + release).slice(0, 4)}`,
     [release]
   );
-
   const attrs = useCallback(
     (base: string): Record<string, string | undefined> => {
       if (release >= 4) {
@@ -207,7 +243,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     },
     [release]
   );
-
   const randomDelay = useCallback(async () => {
     if (release < 2) return;
     const max = Math.min(150 + release * 100, 800);
