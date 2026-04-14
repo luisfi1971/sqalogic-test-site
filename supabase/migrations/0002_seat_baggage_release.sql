@@ -18,8 +18,13 @@ create policy "anon all release" on public.release_state
   for all to anon using (true) with check (true);
 insert into public.release_state (id, release) values (1, 1) on conflict (id) do nothing;
 
--- 3) Enable realtime on release_state
-alter publication supabase_realtime add table public.release_state;
+-- 3) Enable realtime on release_state (idempotent)
+do $$
+begin
+  alter publication supabase_realtime add table public.release_state;
+exception when duplicate_object then
+  null;
+end $$;
 
 -- 4) Rehash demo user password (SHA-256 of "demo123")
 update public.users
