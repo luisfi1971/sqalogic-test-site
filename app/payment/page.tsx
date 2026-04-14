@@ -62,7 +62,7 @@ export default function PaymentPage() {
     await randomDelay();
     await new Promise((r) => setTimeout(r, 900));
     const id = `BK-${Date.now().toString(36).toUpperCase()}`;
-    addBooking({
+    await addBooking({
       id,
       flightId: pending.flightId!,
       from: pending.from || "",

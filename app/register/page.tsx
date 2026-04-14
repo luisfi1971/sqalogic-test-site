@@ -15,10 +15,10 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirm) { setError("Passwords do not match"); return; }
-    const r = register(name, email, password);
+    const r = await register(name, email, password);
     if (!r.ok) { setError(r.error || "Registration failed"); return; }
     router.push("/search");
   };

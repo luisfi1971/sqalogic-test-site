@@ -13,9 +13,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const r = login(email, password);
+    const r = await login(email, password);
     if (!r.ok) { setError(r.error || "Login failed"); return; }
     router.push("/search");
   };

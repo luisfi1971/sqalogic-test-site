@@ -1,13 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "./lib/supabase";
 
 type User = { email: string; name: string };
 
 type AuthCtx = {
   user: User | null;
-  login: (email: string, password: string) => { ok: boolean; error?: string };
-  register: (name: string, email: string, password: string) => { ok: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
 };
 
@@ -33,9 +34,10 @@ type Booking = {
 
 type BookingCtx = {
   bookings: Booking[];
-  addBooking: (b: Booking) => void;
+  addBooking: (b: Booking) => Promise<void>;
   pending: Partial<Booking> | null;
   setPending: (b: Partial<Booking> | null) => void;
+  loading: boolean;
 };
 
 const AuthContext = createContext<AuthCtx | null>(null);
@@ -58,98 +60,94 @@ export function useBooking() {
   return c;
 }
 
-type StoredUser = { name: string; email: string; password: string };
-
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [release, setRelease] = useState(1);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [pending, setPending] = useState<Partial<Booking> | null>(null);
+  const [loading, setLoading] = useState(false);
 
+  // Load session user + release counter from localStorage (UI-only state)
   useEffect(() => {
     try {
-      // Seed a demo user on first visit
-      const seeded = localStorage.getItem("sqa_seeded");
-      if (!seeded) {
-        const demoUsers: StoredUser[] = [
-          { name: "Demo User", email: "demo@sqalogic.ca", password: "demo123" },
-        ];
-        const demoBookings: Booking[] = [
-          {
-            id: "BK-DEMO1",
-            flightId: "FL-1001-0",
-            from: "YUL - Montreal",
-            to: "JFK - New York",
-            date: "2026-05-01",
-            passenger: "Demo User",
-            price: 320,
-            createdAt: "2026-04-01T12:00:00.000Z",
-          },
-          {
-            id: "BK-DEMO2",
-            flightId: "FL-1001-2",
-            from: "YYZ - Toronto",
-            to: "LHR - London",
-            date: "2026-06-14",
-            passenger: "Demo User",
-            price: 890,
-            createdAt: "2026-04-03T09:30:00.000Z",
-          },
-          {
-            id: "BK-DEMO3",
-            flightId: "FL-1001-3",
-            from: "GRU - Sao Paulo",
-            to: "CDG - Paris",
-            date: "2026-07-22",
-            passenger: "Demo User",
-            price: 1240,
-            createdAt: "2026-04-05T15:10:00.000Z",
-          },
-        ];
-        localStorage.setItem("sqa_users", JSON.stringify(demoUsers));
-        localStorage.setItem("sqa_bookings", JSON.stringify(demoBookings));
-        localStorage.setItem("sqa_seeded", "1");
-      }
       const u = localStorage.getItem("sqa_user");
       if (u) setUser(JSON.parse(u));
-      const b = localStorage.getItem("sqa_bookings");
-      if (b) setBookings(JSON.parse(b));
       const r = localStorage.getItem("sqa_release");
       if (r) setRelease(parseInt(r, 10) || 1);
     } catch {}
   }, []);
 
-  const persistUsers = (users: StoredUser[]) => {
-    localStorage.setItem("sqa_users", JSON.stringify(users));
-  };
-  const readUsers = (): StoredUser[] => {
-    try {
-      return JSON.parse(localStorage.getItem("sqa_users") || "[]");
-    } catch {
-      return [];
+  // Load bookings from Supabase whenever the user changes
+  useEffect(() => {
+    if (!user) {
+      setBookings([]);
+      return;
     }
-  };
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("user_email", user.email)
+        .order("created_at", { ascending: false });
+      if (!cancelled) {
+        if (error) {
+          console.error("[bookings] load error:", error);
+          setBookings([]);
+        } else {
+          setBookings(
+            (data || []).map((b) => ({
+              id: b.id,
+              flightId: b.flight_id,
+              from: b.from_airport,
+              to: b.to_airport,
+              date: b.date,
+              passenger: b.passenger,
+              price: Number(b.price),
+              createdAt: b.created_at,
+            }))
+          );
+        }
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
-  const register: AuthCtx["register"] = (name, email, password) => {
+  const register: AuthCtx["register"] = async (name, email, password) => {
     if (!name || !email || !password) return { ok: false, error: "All fields are required" };
     if (password.length < 6) return { ok: false, error: "Password must be at least 6 characters" };
-    const users = readUsers();
-    if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
-      return { ok: false, error: "Email already registered" };
-    }
-    users.push({ name, email, password });
-    persistUsers(users);
-    const u = { name, email };
+
+    const { data: existing } = await supabase
+      .from("users")
+      .select("email")
+      .eq("email", email.toLowerCase())
+      .maybeSingle();
+    if (existing) return { ok: false, error: "Email already registered" };
+
+    const { error } = await supabase
+      .from("users")
+      .insert({ name, email: email.toLowerCase(), password });
+    if (error) return { ok: false, error: error.message };
+
+    const u = { name, email: email.toLowerCase() };
     setUser(u);
     localStorage.setItem("sqa_user", JSON.stringify(u));
     return { ok: true };
   };
 
-  const login: AuthCtx["login"] = (email, password) => {
-    const users = readUsers();
-    const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (!found) return { ok: false, error: "Invalid credentials" };
-    const u = { name: found.name, email: found.email };
+  const login: AuthCtx["login"] = async (email, password) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("name, email, password")
+      .eq("email", email.toLowerCase())
+      .maybeSingle();
+    if (error) return { ok: false, error: error.message };
+    if (!data || data.password !== password) return { ok: false, error: "Invalid credentials" };
+    const u = { name: data.name, email: data.email };
     setUser(u);
     localStorage.setItem("sqa_user", JSON.stringify(u));
     return { ok: true };
@@ -160,12 +158,24 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("sqa_user");
   };
 
-  const addBooking = (b: Booking) => {
-    setBookings((prev) => {
-      const next = [...prev, b];
-      localStorage.setItem("sqa_bookings", JSON.stringify(next));
-      return next;
-    });
+  const addBooking = async (b: Booking) => {
+    const row = {
+      id: b.id,
+      user_email: user?.email || null,
+      flight_id: b.flightId,
+      from_airport: b.from,
+      to_airport: b.to,
+      date: b.date,
+      passenger: b.passenger,
+      price: b.price,
+      created_at: b.createdAt,
+    };
+    const { error } = await supabase.from("bookings").insert(row);
+    if (error) {
+      console.error("[bookings] insert error:", error);
+      return;
+    }
+    setBookings((prev) => [b, ...prev]);
   };
 
   const bump = useCallback(() => {
@@ -187,7 +197,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   const attrs = useCallback(
     (base: string): Record<string, string | undefined> => {
-      // Higher releases progressively strip/rotate attributes
       if (release >= 4) {
         return { "data-qa": `${base}-r${release}-${hash(base + release).slice(0, 3)}` };
       }
@@ -211,7 +220,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     () => ({ release, bump, dynId, dynClass, attrs, randomDelay }),
     [release, bump, dynId, dynClass, attrs, randomDelay]
   );
-  const bookingValue = useMemo<BookingCtx>(() => ({ bookings, addBooking, pending, setPending }), [bookings, pending]);
+  const bookingValue = useMemo<BookingCtx>(
+    () => ({ bookings, addBooking, pending, setPending, loading }),
+    [bookings, pending, loading]
+  );
 
   return (
     <AuthContext.Provider value={authValue}>
