@@ -12,6 +12,10 @@ create table if not exists public.release_state (
   updated_at timestamptz default now(),
   constraint release_single_row check (id = 1)
 );
+
+-- Data API grants (required for new projects on/after 2026-05-30).
+grant all on public.release_state to anon, authenticated, service_role;
+
 alter table public.release_state enable row level security;
 drop policy if exists "anon all release" on public.release_state;
 create policy "anon all release" on public.release_state

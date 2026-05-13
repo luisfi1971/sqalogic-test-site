@@ -24,8 +24,14 @@ create table if not exists public.bookings (
 
 create index if not exists bookings_user_email_idx on public.bookings(user_email);
 
+-- ============ Data API grants ============
+-- Required for new projects on/after 2026-05-30: public schema is no longer
+-- auto-exposed to the Data API. Existing projects enforce this on 2026-10-30.
+-- This is a public QA test site, so anon gets full CRUD.
+grant all on public.users    to anon, authenticated, service_role;
+grant all on public.bookings to anon, authenticated, service_role;
+
 -- ============ Row Level Security ============
--- This is a public QA test site. Anonymous clients need full CRUD.
 alter table public.users enable row level security;
 alter table public.bookings enable row level security;
 
