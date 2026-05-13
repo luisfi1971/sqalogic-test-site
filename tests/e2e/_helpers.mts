@@ -1,9 +1,19 @@
 import { browser } from "vibium";
+import path from "node:path";
 import { BASE_URL } from "./global-setup.mjs";
 
-process.env.VIBIUM_BIN_PATH =
-  process.env.VIBIUM_BIN_PATH ||
-  `${process.cwd()}/node_modules/@vibium/win32-x64/bin/vibium.exe`;
+if (!process.env.VIBIUM_BIN_PATH) {
+  const platformDir = `${process.platform}-${process.arch}`;
+  const binName = process.platform === "win32" ? "vibium.exe" : "vibium";
+  process.env.VIBIUM_BIN_PATH = path.join(
+    process.cwd(),
+    "node_modules",
+    "@vibium",
+    platformDir,
+    "bin",
+    binName
+  );
+}
 
 export async function launch() {
   const bro = await browser.start({ headless: true });
