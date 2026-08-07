@@ -12,6 +12,8 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   delayMs = 0,
+  testId = "confirm-modal",
+  hideConfirm = false,
 }: {
   open: boolean;
   title: string;
@@ -21,6 +23,8 @@ export default function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
   delayMs?: number;
+  testId?: string;
+  hideConfirm?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   const [showBody, setShowBody] = useState(false);
@@ -46,7 +50,7 @@ export default function ConfirmModal({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      data-testid="confirm-modal"
+      data-testid={testId}
       className="fixed inset-0 z-50 flex items-center justify-center"
     >
       <div
@@ -65,14 +69,16 @@ export default function ConfirmModal({
               <button type="button" className="btn-ghost" onClick={onCancel}>
                 {cancelLabel}
               </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={onConfirm}
-                data-testid="confirm-modal-ok"
-              >
-                {confirmLabel}
-              </button>
+              {!hideConfirm && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={onConfirm}
+                  data-testid={`${testId}-ok`}
+                >
+                  {confirmLabel}
+                </button>
+              )}
             </div>
           </>
         )}
