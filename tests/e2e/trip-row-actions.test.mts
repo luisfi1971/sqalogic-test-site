@@ -63,7 +63,11 @@ describe("E2E: My Trips row actions", () => {
     expect(target.count).toBe(1); // matchCount === 1 — safe to act
 
     await vibe.find(`${TABLE} tbody tr:nth-child(${target.index}) [data-testid="trip-cancel"]`).click();
-    await vibe.find('[data-testid="confirm-modal"]').waitUntil("visible");
+    // Wait for the dialog *body*, not just its container: ConfirmModal renders
+    // a "Loading details…" placeholder first, and the confirm button only
+    // appears once the body is in. Waiting on the container alone reads the
+    // placeholder — which is exactly the race a sleep(ms) would paper over.
+    await vibe.find('[data-testid="confirm-modal-ok"]').waitUntil("visible");
     expect(await dialogText("confirm-modal")).toContain("BK-DEMO2");
 
     // Back out — the fixture must survive the run.
@@ -89,7 +93,9 @@ describe("E2E: My Trips row actions", () => {
     expect(target.count).toBe(1);
 
     await vibe.find(`${TABLE} tbody tr:nth-child(${target.index}) [data-testid="trip-view"]`).click();
-    await vibe.find('[data-testid="trip-details-modal"]').waitUntil("visible");
+    // Same reason as E-04: the <dl> only exists once the body has replaced the
+    // loading placeholder.
+    await vibe.find('[data-testid="trip-details-modal"] dl').waitUntil("visible");
 
     const text = await dialogText("trip-details-modal");
     expect(text).toContain("BK-DEMO3");
