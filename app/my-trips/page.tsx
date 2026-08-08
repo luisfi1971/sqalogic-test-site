@@ -24,6 +24,11 @@ export default function MyTripsPage() {
   const { toast } = useToast();
   const [detailsOf, setDetailsOf] = useState<Booking | null>(null);
   const [confirmOf, setConfirmOf] = useState<Booking | null>(null);
+  // Selection is keyed by booking reference, never by row index, so it survives
+  // sorting, filtering and paging. That is the documented behaviour the canon
+  // asks for: deterministic either way, but stated.
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -69,6 +74,24 @@ export default function MyTripsPage() {
     );
   }
 
+  // Only active trips are selectable — a cancelled one has nothing left to do.
+  const selectableOnPage = pageSlice.filter((b) => b.status !== "cancelled").map((b) => b.id);
+  const selectedOnPage = selectableOnPage.filter((id) => selected.includes(id));
+  const allOnPageSelected =
+    selectableOnPage.length > 0 && selectedOnPage.length === selectableOnPage.length;
+
+  const toggleRow = (id: string) =>
+    setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+
+  // Select-all covers the current page only, which is what the checkbox can
+  // honestly claim when the rest of the selection is off-screen.
+  const toggleAllOnPage = () =>
+    setSelected((cur) =>
+      allOnPageSelected
+        ? cur.filter((id) => !selectableOnPage.includes(id))
+        : [...cur, ...selectableOnPage.filter((id) => !cur.includes(id))]
+    );
+
   const header = (key: SortKey, label: string) => (
     <th
       scope="col"
@@ -110,10 +133,41 @@ export default function MyTripsPage() {
         </div>
       </div>
 
+      <div className="mt-3 flex items-center gap-3" data-testid="trips-bulk-bar">
+        <button
+          type="button"
+          className="btn-primary text-sm disabled:opacity-40"
+          disabled={selected.length === 0}
+          onClick={() => setBulkOpen(true)}
+          data-testid="trips-cancel-selected"
+        >
+          Cancel selected
+        </button>
+        <span className="text-xs text-slate-500" data-testid="trips-selection-count">
+          {selected.length} selected
+        </span>
+      </div>
+
       <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm" data-testid="trips-table">
           <thead className="bg-slate-50">
             <tr>
+              <th scope="col" className="px-3 py-2 text-left" data-col="select">
+                <input
+                  type="checkbox"
+                  aria-label="Select all trips on this page"
+                  data-testid="trips-select-all"
+                  checked={allOnPageSelected}
+                  ref={(el) => {
+                    if (el) {
+                      el.indeterminate =
+                        selectedOnPage.length > 0 && !allOnPageSelected;
+                    }
+                  }}
+                  disabled={selectableOnPage.length === 0}
+                  onChange={toggleAllOnPage}
+                />
+              </th>
               {header("id", "Reference")}
               {header("from", "From")}
               {header("to", "To")}
@@ -129,15 +183,29 @@ export default function MyTripsPage() {
             {pageSlice.map((b) => {
               const cancelled = b.status === "cancelled";
               return (
-                <tr key={b.id} className="border-t border-slate-100 hover:bg-slate-50">
-                  <td className="px-3 py-2 font-mono text-xs">{b.id}</td>
-                  <td className="px-3 py-2">{b.from}</td>
-                  <td className="px-3 py-2">{b.to}</td>
-                  <td className="px-3 py-2">{b.date}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{b.seat || "—"}</td>
-                  <td className="px-3 py-2 text-xs">{b.baggage ? "Yes" : "No"}</td>
-                  <td className="px-3 py-2 font-semibold">${b.price}</td>
-                  <td className="px-3 py-2">
+                <tr
+                  key={b.id}
+                  className="border-t border-slate-100 hover:bg-slate-50"
+                  data-selected={selected.includes(b.id) ? "true" : undefined}
+                >
+                  <td className="px-3 py-2" data-col="select">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select trip ${b.id}`}
+                      data-testid="trip-select"
+                      checked={selected.includes(b.id)}
+                      disabled={cancelled}
+                      onChange={() => toggleRow(b.id)}
+                    />
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs" data-col="reference">{b.id}</td>
+                  <td className="px-3 py-2" data-col="from">{b.from}</td>
+                  <td className="px-3 py-2" data-col="to">{b.to}</td>
+                  <td className="px-3 py-2" data-col="date">{b.date}</td>
+                  <td className="px-3 py-2 font-mono text-xs" data-col="seat">{b.seat || "—"}</td>
+                  <td className="px-3 py-2 text-xs" data-col="bag">{b.baggage ? "Yes" : "No"}</td>
+                  <td className="px-3 py-2 font-semibold" data-col="price">${b.price}</td>
+                  <td className="px-3 py-2" data-col="status">
                     <span
                       className={`rounded px-2 py-0.5 text-xs font-medium ${
                         cancelled ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
@@ -146,7 +214,7 @@ export default function MyTripsPage() {
                       {cancelled ? "Cancelled" : "Active"}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2" data-col="actions">
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -172,7 +240,7 @@ export default function MyTripsPage() {
             })}
             {pageSlice.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-sm text-slate-500">
+                <td colSpan={10} className="px-3 py-8 text-center text-sm text-slate-500">
                   No matching trips
                 </td>
               </tr>
@@ -206,6 +274,32 @@ export default function MyTripsPage() {
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        open={bulkOpen}
+        title={`Cancel ${selected.length} selected trip${selected.length === 1 ? "" : "s"}?`}
+        testId="bulk-cancel-modal"
+        confirmLabel="Cancel them"
+        cancelLabel="Keep them"
+        delayMs={release >= 2 ? 400 : 0}
+        onConfirm={async () => {
+          const ids = selected;
+          setBulkOpen(false);
+          setSelected([]);
+          for (const id of ids) await cancelBooking(id);
+          toast(`${ids.length} trip${ids.length === 1 ? "" : "s"} cancelled`, "info");
+        }}
+        onCancel={() => setBulkOpen(false)}
+      >
+        <div>
+          <p>These trips will be cancelled:</p>
+          <ul className="mt-2 list-disc pl-5 font-mono text-xs" data-testid="bulk-cancel-list">
+            {selected.map((id) => (
+              <li key={id}>{id}</li>
+            ))}
+          </ul>
+        </div>
+      </ConfirmModal>
 
       <ConfirmModal
         open={!!detailsOf}

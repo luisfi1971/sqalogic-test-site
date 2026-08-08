@@ -74,7 +74,7 @@ describe("E2E: My Trips row actions", () => {
     await vibe.find({ role: "button", text: "Keep trip" }).click();
     const stillActive = (await vibe.evaluate(`
       Array.from(document.querySelectorAll('${TABLE} tbody tr'))
-        .find(r => r.querySelector('td').textContent.trim() === 'BK-DEMO2')
+        .find(r => r.querySelector('td[data-col="reference"]').textContent.trim() === 'BK-DEMO2')
         .textContent.includes('Active')
     `)) as boolean;
     expect(stillActive).toBe(true);

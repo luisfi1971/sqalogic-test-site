@@ -24,7 +24,7 @@ describe("E2E: demo login flow", () => {
       await vibe.go(`${BASE_URL}/my-trips`);
       await vibe.find('[data-testid="trips-table"]').waitUntil("visible");
       const refs = (await vibe.evaluate(
-        `Array.from(document.querySelectorAll('[data-testid="trips-table"] tbody tr td:first-child')).map(td => td.textContent.trim())`
+        `Array.from(document.querySelectorAll('[data-testid="trips-table"] tbody tr td[data-col="reference"]')).map(td => td.textContent.trim())`
       )) as string[];
       expect(refs.length).toBeGreaterThanOrEqual(3);
       expect(refs).toEqual(

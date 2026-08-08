@@ -176,6 +176,88 @@ describe("<MyTripsPage> row actions", () => {
     expect(new Set(ids).size).toBe(4);
   });
 
+  it("U-12 every row offers a checkbox, plus one select-all in the header", () => {
+    render(<MyTripsPage />);
+    expect(screen.getAllByTestId("trip-select")).toHaveLength(4);
+    expect(screen.getByTestId("trips-select-all")).toBeInTheDocument();
+  });
+
+  it("U-12a Cancel selected is inert until something is selected", async () => {
+    const user = userEvent.setup();
+    render(<MyTripsPage />);
+    expect(screen.getByTestId("trips-cancel-selected")).toBeDisabled();
+
+    await user.click(within(rowWhere("BK-DEMO2").one).getByRole("checkbox"));
+    expect(screen.getByTestId("trips-cancel-selected")).toBeEnabled();
+    expect(screen.getByTestId("trips-selection-count")).toHaveTextContent("1 selected");
+  });
+
+  it("U-12b select-all takes every selectable row on the page", async () => {
+    const user = userEvent.setup();
+    render(<MyTripsPage />);
+    await user.click(screen.getByTestId("trips-select-all"));
+    expect(screen.getByTestId("trips-selection-count")).toHaveTextContent("4 selected");
+    await user.click(screen.getByTestId("trips-select-all"));
+    expect(screen.getByTestId("trips-selection-count")).toHaveTextContent("0 selected");
+  });
+
+  it("U-12c a cancelled row cannot be selected — there is nothing left to cancel", () => {
+    setBookings([trip({ id: "BK-GONE", status: "cancelled" }), trip()]);
+    render(<MyTripsPage />);
+    expect(within(rowWhere("BK-GONE").one).getByRole("checkbox")).toBeDisabled();
+    expect(within(rowWhere("BK-DEMO1").one).getByRole("checkbox")).toBeEnabled();
+  });
+
+  it("U-12d select-all goes indeterminate on a partial selection", async () => {
+    const user = userEvent.setup();
+    render(<MyTripsPage />);
+    await user.click(within(rowWhere("BK-DEMO2").one).getByRole("checkbox"));
+    expect((screen.getByTestId("trips-select-all") as HTMLInputElement).indeterminate).toBe(true);
+    expect(screen.getByTestId("trips-select-all")).not.toBeChecked();
+  });
+
+  it("U-12e the selection survives re-sorting, because it is keyed by reference", async () => {
+    const user = userEvent.setup();
+    render(<MyTripsPage />);
+    await user.click(within(rowWhere("BK-DEMO2").one).getByRole("checkbox"));
+
+    // Re-sort by price; BK-DEMO2 lands in a different row position.
+    await user.click(document.querySelector('[data-sort-key="price"]') as Element);
+
+    expect(screen.getByTestId("trips-selection-count")).toHaveTextContent("1 selected");
+    expect(within(rowWhere("BK-DEMO2").one).getByRole("checkbox")).toBeChecked();
+  });
+
+  it("U-12f bulk cancel confirms, then cancels each selected reference once", async () => {
+    const user = userEvent.setup();
+    render(<MyTripsPage />);
+    await user.click(within(rowWhere("BK-DEMO2").one).getByRole("checkbox"));
+    await user.click(within(rowWhere("BK-DEMO3").one).getByRole("checkbox"));
+    await user.click(screen.getByTestId("trips-cancel-selected"));
+
+    const dialog = await screen.findByTestId("bulk-cancel-modal");
+    expect(within(dialog).getByTestId("bulk-cancel-list")).toHaveTextContent("BK-DEMO2");
+    expect(within(dialog).getByTestId("bulk-cancel-list")).toHaveTextContent("BK-DEMO3");
+    expect(cancelBooking).not.toHaveBeenCalled();
+
+    await user.click(await screen.findByTestId("bulk-cancel-modal-ok"));
+    expect(cancelBooking).toHaveBeenCalledTimes(2);
+    expect(cancelBooking).toHaveBeenCalledWith("BK-DEMO2");
+    expect(cancelBooking).toHaveBeenCalledWith("BK-DEMO3");
+    expect(toast).toHaveBeenCalledExactlyOnceWith("2 trips cancelled", "info");
+  });
+
+  it("U-12g backing out of the bulk dialog cancels nothing and keeps the selection", async () => {
+    const user = userEvent.setup();
+    render(<MyTripsPage />);
+    await user.click(within(rowWhere("BK-DEMO2").one).getByRole("checkbox"));
+    await user.click(screen.getByTestId("trips-cancel-selected"));
+    await user.click(await screen.findByRole("button", { name: "Keep them" }));
+
+    expect(cancelBooking).not.toHaveBeenCalled();
+    expect(screen.getByTestId("trips-selection-count")).toHaveTextContent("1 selected");
+  });
+
   it("U-11i the controls rot with Simulate New Release", () => {
     const { unmount } = render(<MyTripsPage />);
     expect(document.querySelectorAll('[data-testid="trip-cancel"]')).toHaveLength(4);
