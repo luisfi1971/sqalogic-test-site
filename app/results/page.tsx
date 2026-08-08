@@ -1,8 +1,10 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useBooking, useRelease } from "../providers";
+import { useBooking, useLatency, useRelease } from "../providers";
+import Spinner from "../components/Spinner";
+import { SETTLE_SWINGS, settlePrice } from "../lib/latency";
 
 type Flight = {
   id: string;
@@ -41,16 +43,47 @@ function hash(s: string) {
   return h;
 }
 
+
 function ResultsInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const { setPending } = useBooking();
   const { release, dynClass } = useRelease();
+  const { latency } = useLatency();
 
   const from = sp.get("from") || "";
   const to = sp.get("to") || "";
   const date = sp.get("date") || "";
   const flights = useMemo(() => seedFlights(from, to, date), [from, to, date]);
+
+  // Latency mode: the results take a moment to come back, then the prices
+  // wobble before they converge. Off, the page stays instantaneous.
+  //
+  // Both are derived from the current query rather than mirrored into state on
+  // every change, so a new search resets them without an effect having to
+  // write state synchronously.
+  const query = `${latency}|${from}|${to}|${date}`;
+  const [searchedQuery, setSearchedQuery] = useState<string | null>(null);
+  const [settled, setSettled] = useState<{ query: string; step: number }>({ query: "", step: 0 });
+
+  const searching = latency && searchedQuery !== query;
+  const settleStep = !latency
+    ? SETTLE_SWINGS.length
+    : settled.query === query
+      ? settled.step
+      : 0;
+
+  useEffect(() => {
+    if (!latency) return;
+    const t = setTimeout(() => setSearchedQuery(query), 1400);
+    return () => clearTimeout(t);
+  }, [latency, query]);
+
+  useEffect(() => {
+    if (!latency || searching || settleStep >= SETTLE_SWINGS.length) return;
+    const t = setTimeout(() => setSettled({ query, step: settleStep + 1 }), 450);
+    return () => clearTimeout(t);
+  }, [latency, searching, settleStep, query]);
 
   const select = (f: Flight) => {
     setPending({ flightId: f.id, from, to, date, price: f.price });
@@ -68,7 +101,9 @@ function ResultsInner() {
       </h1>
       <p className="text-sm text-slate-600">Departing {date}</p>
 
-      <ul className={`mt-6 space-y-3 ${dynClass("results-list")}`}>
+      {searching && <Spinner label="Searching flights" />}
+
+      <ul className={`mt-6 space-y-3 ${dynClass("results-list")}`} hidden={searching}>
         {flights.map((f, i) => (
           <li key={f.id} className="card flex flex-wrap items-center justify-between gap-4" data-flight-id={f.id}>
             <div>
@@ -79,7 +114,9 @@ function ResultsInner() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-xl font-bold">${f.price}</div>
+              <div className="text-xl font-bold" data-price-for={f.id}>
+                ${settlePrice(f.price, settleStep, i)}
+              </div>
               {deepWrap ? (
                 <div><div><div>
                   <button onClick={() => select(f)} className="btn-primary">Select</button>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useBooking, useRelease, type Booking } from "../providers";
+import { useBooking, useRelease, useToast, type Booking } from "../providers";
 import ConfirmModal from "../components/ConfirmModal";
 
 type SortKey = "date" | "price" | "from" | "to" | "id";
@@ -21,6 +21,7 @@ function rowAttrs(base: Record<string, string | undefined>, rowId: string) {
 export default function MyTripsPage() {
   const { bookings, cancelBooking } = useBooking();
   const { attrs, release } = useRelease();
+  const { toast } = useToast();
   const [detailsOf, setDetailsOf] = useState<Booking | null>(null);
   const [confirmOf, setConfirmOf] = useState<Booking | null>(null);
   const [filter, setFilter] = useState("");
@@ -248,7 +249,10 @@ export default function MyTripsPage() {
         onConfirm={async () => {
           const target = confirmOf;
           setConfirmOf(null);
-          if (target) await cancelBooking(target.id);
+          if (target) {
+            await cancelBooking(target.id);
+            toast(`Trip ${target.id} cancelled`, "info");
+          }
         }}
         onCancel={() => setConfirmOf(null)}
       >

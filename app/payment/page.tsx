@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useBooking, useRelease } from "../providers";
+import { useAuth, useBooking, useLatency, useRelease, useToast } from "../providers";
 import ConfirmModal from "../components/ConfirmModal";
 import ShadowInput from "../components/ShadowInput";
 
@@ -10,6 +10,8 @@ export default function PaymentPage() {
   const { user } = useAuth();
   const { pending, addBooking, setPending } = useBooking();
   const { dynId, release, randomDelay } = useRelease();
+  const { wait } = useLatency();
+  const { toast } = useToast();
   const router = useRouter();
   const [card, setCard] = useState("");
   const [name, setName] = useState(user?.name || "");
@@ -61,6 +63,7 @@ export default function PaymentPage() {
     setSubmitting(true);
     await randomDelay();
     await new Promise((r) => setTimeout(r, 900));
+    await wait(1200);
     const id = `BK-${Date.now().toString(36).toUpperCase()}`;
     await addBooking({
       id,
@@ -75,6 +78,7 @@ export default function PaymentPage() {
       baggage: !!pending.baggage,
     });
     setPending(null);
+    toast(`Booking ${id} confirmed`);
     router.push(`/confirmation?id=${id}`);
   };
 
