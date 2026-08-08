@@ -6,6 +6,7 @@ import { useRelease } from "../providers";
 import Calendar from "../components/Calendar";
 import Dropdown from "../components/Dropdown";
 import Tooltip from "../components/Tooltip";
+import FavouriteAirports from "../components/FavouriteAirports";
 
 const AIRPORTS = [
   "YUL - Montreal",
@@ -146,6 +147,9 @@ export default function SearchPage() {
         </form>
       </div>
 
+      <div className="space-y-6">
+      <FavouriteAirports />
+
       <div className="card">
         <h2 className="text-sm font-semibold">Subscribe for deals</h2>
         <p className="mt-1 text-xs text-slate-500">
@@ -161,6 +165,7 @@ export default function SearchPage() {
             style={{ height: 380, border: 0 }}
           />
         </div>
+      </div>
       </div>
     </div>
   );
