@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth, useRelease } from "../providers";
+import { useAuth, useI18n, useRelease } from "../providers";
 import { useState } from "react";
 
 export default function Header() {
   const { user, logout } = useAuth();
   const { release, bump } = useRelease();
+  const { locale, setLocale, t } = useI18n();
   const [flash, setFlash] = useState(false);
 
   const onSimulate = () => {
@@ -24,7 +25,7 @@ export default function Header() {
    * until it is answered.
    */
   const onLogout = () => {
-    if (window.confirm("Sign out of SQALOGIC Air?")) logout();
+    if (window.confirm(t("logout.confirm"))) logout();
   };
 
   return (
@@ -35,23 +36,35 @@ export default function Header() {
           <span className="hidden sm:inline text-sm opacity-80">Automation Test Site</span>
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4 text-sm">
-          <Link href="/search" className="hover:underline">Search Flights</Link>
-          <Link href="/my-trips" className="hover:underline">My Trips</Link>
+          <Link href="/search" className="hover:underline">{t("nav.search")}</Link>
+          <Link href="/my-trips" className="hover:underline">{t("nav.trips")}</Link>
+          <button
+            type="button"
+            onClick={() => setLocale(locale === "en" ? "fr-CA" : "en")}
+            data-testid="locale-toggle"
+            data-locale={locale}
+            aria-label={t("nav.language")}
+            className="rounded border border-white/30 px-2 py-1 text-xs font-semibold"
+          >
+            {locale === "en" ? "FR" : "EN"}
+          </button>
           {user ? (
             <>
-              <span className="hidden sm:inline opacity-80">Hi, {user.name.split(" ")[0]}</span>
+              <span className="hidden sm:inline opacity-80">
+                {t("nav.greeting", { name: user.name.split(" ")[0] })}
+              </span>
               <button
                 onClick={onLogout}
                 data-testid="logout"
                 className="rounded bg-white/10 px-3 py-1 hover:bg-white/20"
               >
-                Logout
+                {t("nav.logout")}
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="rounded bg-white/10 px-3 py-1 hover:bg-white/20">Login</Link>
-              <Link href="/register" className="rounded bg-[color:var(--brand-accent)] px-3 py-1">Register</Link>
+              <Link href="/login" className="rounded bg-white/10 px-3 py-1 hover:bg-white/20">{t("nav.login")}</Link>
+              <Link href="/register" className="rounded bg-[color:var(--brand-accent)] px-3 py-1">{t("nav.register")}</Link>
             </>
           )}
           <button

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useBooking, useLatency, useRelease } from "../providers";
+import { useBooking, useI18n, useLatency, useRelease } from "../providers";
 import Spinner from "../components/Spinner";
 import AirlineRating from "../components/AirlineRating";
 import { SETTLE_SWINGS, settlePrice } from "../lib/latency";
@@ -51,6 +51,7 @@ function ResultsInner() {
   const { setPending } = useBooking();
   const { release, dynClass } = useRelease();
   const { latency } = useLatency();
+  const { t } = useI18n();
 
   const from = sp.get("from") || "";
   const to = sp.get("to") || "";
@@ -100,9 +101,9 @@ function ResultsInner() {
         Flights from <span className="text-[color:var(--brand-accent)]">{from}</span> to{" "}
         <span className="text-[color:var(--brand-accent)]">{to}</span>
       </h1>
-      <p className="text-sm text-slate-600">Departing {date}</p>
+      <p className="text-sm text-slate-600">{t("results.departing", { date })}</p>
 
-      {searching && <Spinner label="Searching flights" />}
+      {searching && <Spinner label={t("results.searching")} />}
 
       <ul className={`mt-6 space-y-3 ${dynClass("results-list")}`} hidden={searching}>
         {flights.map((f, i) => (
@@ -114,7 +115,7 @@ function ResultsInner() {
               </div>
               <div className="text-sm text-slate-600">
                 {f.depart} → {f.arrive} &middot; {f.duration} &middot;{" "}
-                {f.stops === 0 ? "Non-stop" : `${f.stops} stop`}
+                {f.stops === 0 ? t("results.nonstop") : `${f.stops} stop`}
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -123,7 +124,7 @@ function ResultsInner() {
               </div>
               {deepWrap ? (
                 <div><div><div>
-                  <button onClick={() => select(f)} className="btn-primary">Select</button>
+                  <button onClick={() => select(f)} className="btn-primary">{t("results.select")}</button>
                 </div></div></div>
               ) : (
                 <button
@@ -131,7 +132,7 @@ function ResultsInner() {
                   className="btn-primary"
                   data-testid={release < 3 ? `select-flight-${i}` : undefined}
                 >
-                  Select
+                  {t("results.select")}
                 </button>
               )}
             </div>

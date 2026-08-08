@@ -4,6 +4,13 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { supabase } from "./lib/supabase";
 import { sha256 } from "./lib/hash";
 import { LATENCY_KEY, resolveLatency } from "./lib/latency";
+import {
+  LOCALE_KEY,
+  resolveLocale,
+  translate,
+  type Locale,
+  type MessageKey,
+} from "./lib/i18n";
 
 type User = { email: string; name: string };
 
@@ -72,6 +79,13 @@ type ToastCtx = {
   dismiss: (id: number) => void;
 };
 
+type I18nCtx = {
+  locale: Locale;
+  setLocale: (l: Locale) => void;
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string;
+};
+
+const I18nContext = createContext<I18nCtx | null>(null);
 const AuthContext = createContext<AuthCtx | null>(null);
 const ReleaseContext = createContext<ReleaseCtx | null>(null);
 const BookingContext = createContext<BookingCtx | null>(null);
@@ -103,6 +117,11 @@ export function useToast() {
   if (!c) throw new Error("useToast outside provider");
   return c;
 }
+export function useI18n() {
+  const c = useContext(I18nContext);
+  if (!c) throw new Error("useI18n outside provider");
+  return c;
+}
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -111,6 +130,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const [pending, setPending] = useState<Partial<Booking> | null>(null);
   const [loading, setLoading] = useState(false);
   const [latency, setLatencyState] = useState(false);
+  const [locale, setLocaleState] = useState<Locale>("en");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [hiddenBookings, setHiddenBookings] = useState<string[]>([]);
   const toastSeq = useRef(0);
@@ -123,6 +143,30 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       if (on) setLatencyState(true);
     } catch {}
   }, []);
+
+  // Same precedence as latency mode: an explicit ?lang= wins and is remembered,
+  // so the language survives the client-side hops of the booking flow.
+  useEffect(() => {
+    try {
+      const next = resolveLocale(window.location.search, sessionStorage.getItem(LOCALE_KEY));
+      sessionStorage.setItem(LOCALE_KEY, next);
+      document.documentElement.lang = next;
+      if (next !== "en") setLocaleState(next);
+    } catch {}
+  }, []);
+
+  const setLocale = useCallback((next: Locale) => {
+    setLocaleState(next);
+    try {
+      sessionStorage.setItem(LOCALE_KEY, next);
+      document.documentElement.lang = next;
+    } catch {}
+  }, []);
+
+  const t = useCallback<I18nCtx["t"]>(
+    (key, vars) => translate(locale, key, vars),
+    [locale]
+  );
 
   const setLatency = useCallback((on: boolean) => {
     setLatencyState(on);
@@ -380,17 +424,20 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     [latency, setLatency, scale, wait]
   );
   const toastValue = useMemo<ToastCtx>(() => ({ toasts, toast, dismiss }), [toasts, toast, dismiss]);
+  const i18nValue = useMemo<I18nCtx>(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
 
   return (
-    <AuthContext.Provider value={authValue}>
-      <ReleaseContext.Provider value={releaseValue}>
-        <LatencyContext.Provider value={latencyValue}>
-          <ToastContext.Provider value={toastValue}>
-            <BookingContext.Provider value={bookingValue}>{children}</BookingContext.Provider>
-          </ToastContext.Provider>
-        </LatencyContext.Provider>
-      </ReleaseContext.Provider>
-    </AuthContext.Provider>
+    <I18nContext.Provider value={i18nValue}>
+      <AuthContext.Provider value={authValue}>
+        <ReleaseContext.Provider value={releaseValue}>
+          <LatencyContext.Provider value={latencyValue}>
+            <ToastContext.Provider value={toastValue}>
+              <BookingContext.Provider value={bookingValue}>{children}</BookingContext.Provider>
+            </ToastContext.Provider>
+          </LatencyContext.Provider>
+        </ReleaseContext.Provider>
+      </AuthContext.Provider>
+    </I18nContext.Provider>
   );
 }
 

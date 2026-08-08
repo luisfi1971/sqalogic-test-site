@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useRelease } from "../providers";
+import { useI18n, useRelease } from "../providers";
 import Calendar from "../components/Calendar";
 import Dropdown from "../components/Dropdown";
 import Tooltip from "../components/Tooltip";
@@ -23,6 +23,7 @@ const AIRPORTS = [
 
 export default function SearchPage() {
   const { dynId, release, randomDelay } = useRelease();
+  const { t } = useI18n();
   const router = useRouter();
   const [from, setFrom] = useState(AIRPORTS[0]);
   const [to, setTo] = useState(AIRPORTS[2]);
@@ -47,7 +48,7 @@ export default function SearchPage() {
     router.push(`/results?${q}`);
   };
 
-  const ctaLabel = release % 2 === 0 ? "Find Flights" : "Search flights";
+  const ctaLabel = release % 2 === 0 ? t("search.submitAlt") : t("search.submit");
 
   // On release >= 3, render the submit "button" as div role=button instead of a real <button>
   const fakeButton = release >= 3;
@@ -55,7 +56,7 @@ export default function SearchPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
       <div className="card">
-        <h1 className="text-2xl font-semibold">Search flights</h1>
+        <h1 className="text-2xl font-semibold">{t("search.title")}</h1>
         <form onSubmit={onSubmit} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2 flex gap-6 text-sm">
             <label className="flex items-center gap-2">
@@ -65,7 +66,7 @@ export default function SearchPage() {
                 checked={tripType === "oneway"}
                 onChange={() => setTripType("oneway")}
               />
-              One way
+              {t("search.oneway")}
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -74,24 +75,24 @@ export default function SearchPage() {
                 checked={tripType === "roundtrip"}
                 onChange={() => setTripType("roundtrip")}
               />
-              Round trip
+              {t("search.roundtrip")}
             </label>
           </div>
           <div>
-            <div className="label">From</div>
+            <div className="label">{t("search.from")}</div>
             <Dropdown value={from} options={AIRPORTS} onChange={setFrom} label="from" />
           </div>
           <div>
-            <div className="label">To</div>
+            <div className="label">{t("search.to")}</div>
             <Dropdown value={to} options={AIRPORTS} onChange={setTo} label="to" />
           </div>
           <div>
-            <div className="label">Departure date</div>
+            <div className="label">{t("search.date")}</div>
             <Calendar value={date} onChange={setDate} label="departure" />
           </div>
           <div>
             <div className="label">
-              Passengers{" "}
+              {t("search.passengers")}{" "}
               <Tooltip content="Up to 9 passengers per booking">
                 <span className="ml-1 text-xs text-slate-400 cursor-help">ⓘ</span>
               </Tooltip>
