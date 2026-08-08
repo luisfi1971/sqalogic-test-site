@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth, useBooking, useRelease } from "../providers";
 import SeatMap from "../components/SeatMap";
 import Tooltip from "../components/Tooltip";
+import {
+  ACCEPT_ATTRIBUTE,
+  formatBytes,
+  validateDocument,
+} from "../lib/upload";
 
 export default function BookPage() {
   const { user } = useAuth();
@@ -17,6 +22,8 @@ export default function BookPage() {
   const [seat, setSeat] = useState<string | null>(null);
   const [baggage, setBaggage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [docFile, setDocFile] = useState<{ name: string; size: number } | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
 
   if (!pending?.flightId) {
     return (
@@ -109,6 +116,63 @@ export default function BookPage() {
               <option value="premium">Premium economy (+$200)</option>
               <option value="business">Business (+$400)</option>
             </select>
+          </div>
+
+          <div>
+            <div className="label">
+              Passport scan or photo ID{" "}
+              <Tooltip content="PDF, JPG or PNG, up to 2 MB. Optional for this fixture.">
+                <span className="ml-1 text-xs text-slate-400 cursor-help">ⓘ</span>
+              </Tooltip>
+            </div>
+            <input
+              type="file"
+              accept={ACCEPT_ATTRIBUTE}
+              data-testid="book-document"
+              id={dynId("book_document")}
+              className="block w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) {
+                  setDocFile(null);
+                  setDocumentError(null);
+                  return;
+                }
+                const verdict = validateDocument({ name: file.name, size: file.size });
+                if (verdict.ok) {
+                  setDocFile({ name: file.name, size: file.size });
+                  setDocumentError(null);
+                } else {
+                  // Refuse it outright rather than keeping a file the rules
+                  // reject — a silent accept would exercise nothing.
+                  setDocFile(null);
+                  setDocumentError(verdict.error);
+                  e.target.value = "";
+                }
+              }}
+            />
+            {docFile && (
+              <div className="mt-2 flex items-center gap-3 text-sm" data-testid="book-document-name">
+                <span className="font-medium">{docFile.name}</span>
+                <span className="text-xs text-slate-500">{formatBytes(docFile.size)}</span>
+                <button
+                  type="button"
+                  className="btn-ghost text-xs"
+                  data-testid="book-document-remove"
+                  onClick={() => {
+                    setDocFile(null);
+                    setDocumentError(null);
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+            {documentError && (
+              <div className="mt-2 text-sm text-red-600" data-testid="book-document-error">
+                {documentError}
+              </div>
+            )}
           </div>
 
           <SeatMap flightId={pending.flightId!} value={seat} onChange={setSeat} />
