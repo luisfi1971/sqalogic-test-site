@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, useBooking, useLatency, useRelease, useToast } from "../providers";
 import ConfirmModal from "../components/ConfirmModal";
 import ShadowInput from "../components/ShadowInput";
+import { digitsOf, formatCard, formatExpiry, lastFour, maskCard } from "../lib/mask";
 
 export default function PaymentPage() {
   const { user } = useAuth();
@@ -20,6 +21,9 @@ export default function PaymentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  // The raw digits are what gets validated; the input only ever displays a
+  // transformed version of them.
+  const [cardFocused, setCardFocused] = useState(false);
 
   if (!pending?.flightId) {
     return (
@@ -35,9 +39,9 @@ export default function PaymentPage() {
     );
   }
 
-  const digits = card.replace(/\s/g, "");
-  const cardValid = digits.length >= 13 && digits.length <= 19 && /^\d+$/.test(digits);
-  const expValid = /^\d{2}\/\d{2}$/.test(exp);
+  const digits = digitsOf(card);
+  const cardValid = digits.length >= 13 && digits.length <= 19;
+  const expValid = /^\d{2}\/\d{2}$/.test(formatExpiry(exp));
   const cvvValid = /^\d{3,4}$/.test(cvv);
 
   const onSubmit = (e: React.FormEvent) => {
@@ -101,8 +105,12 @@ export default function PaymentPage() {
               id={dynId("pay_card")}
               className="input"
               placeholder="4242 4242 4242 4242"
-              value={card}
-              onChange={(e) => setCard(e.target.value)}
+              inputMode="numeric"
+              data-mask="card"
+              value={cardFocused ? formatCard(card) : maskCard(card)}
+              onFocus={() => setCardFocused(true)}
+              onBlur={() => setCardFocused(false)}
+              onChange={(e) => setCard(digitsOf(e.target.value))}
             />
           </div>
           <div>
@@ -121,8 +129,10 @@ export default function PaymentPage() {
                 id={dynId("pay_exp")}
                 className="input"
                 placeholder="12/28"
-                value={exp}
-                onChange={(e) => setExp(e.target.value)}
+                inputMode="numeric"
+                data-mask="expiry"
+                value={formatExpiry(exp)}
+                onChange={(e) => setExp(digitsOf(e.target.value))}
               />
             </div>
             <div>
@@ -188,7 +198,7 @@ export default function PaymentPage() {
             Total: <strong>${pending.price}</strong>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            Your card ending in <code>{digits.slice(-4)}</code> will be charged.
+            Your card ending in <code>{lastFour(card)}</code> will be charged.
           </p>
         </div>
       </ConfirmModal>
