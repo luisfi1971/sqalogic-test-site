@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "../providers";
 
 const DEFAULT_FAVOURITES = [
   "YUL - Montreal",
@@ -25,6 +26,7 @@ const STORAGE_KEY = "sqa_favourites";
  * after one rather than only in live DOM.
  */
 export default function FavouriteAirports() {
+  const { t } = useI18n();
   const [items, setItems] = useState<string[]>(DEFAULT_FAVOURITES);
   const [dragging, setDragging] = useState<number | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -103,8 +105,8 @@ export default function FavouriteAirports() {
 
   return (
     <div className="card" data-testid="favourites">
-      <h2 className="text-sm font-semibold">Favourite airports</h2>
-      <p className="mt-1 text-xs text-slate-500">Drag to reorder.</p>
+      <h2 className="text-sm font-semibold">{t("search.favourites")}</h2>
+      <p className="mt-1 text-xs text-slate-500">{t("search.favouritesHint")}</p>
       <ul ref={listRef} className="mt-3 space-y-1" data-testid="favourites-list">
         {items.map((code, i) => (
           <li
@@ -131,7 +133,7 @@ export default function FavouriteAirports() {
         data-testid="favourites-reset"
         onClick={() => persist(DEFAULT_FAVOURITES)}
       >
-        Reset order
+        {t("search.reset")}
       </button>
     </div>
   );

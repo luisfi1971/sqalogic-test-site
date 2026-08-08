@@ -10,6 +10,7 @@ import type { Booking } from "@app/providers";
 const state = vi.hoisted(() => ({
   bookings: [] as unknown[],
   release: 1,
+  locale: "en" as "en" | "fr-CA",
   cancelBooking: vi.fn(),
   toast: vi.fn(),
 }));
@@ -37,9 +38,18 @@ vi.mock("@app/providers", () => ({
     randomDelay: vi.fn(),
   }),
   useToast: () => ({ toasts: [], toast: state.toast, dismiss: vi.fn() }),
+  // Wired to the real dictionary rather than a stub, so these tests also cover
+  // the page rendered in French.
+  useI18n: () => ({
+    locale: state.locale,
+    setLocale: vi.fn(),
+    t: (key: MessageKey, vars?: Record<string, string | number>) =>
+      translate(state.locale, key, vars),
+  }),
 }));
 
 import MyTripsPage from "@app/my-trips/page";
+import { translate, type MessageKey } from "@app/lib/i18n";
 
 const cancelBooking = state.cancelBooking;
 const toast = state.toast;
@@ -81,6 +91,7 @@ function rowWhere(text: string) {
 beforeEach(() => {
   cancelBooking.mockClear();
   toast.mockClear();
+  state.locale = "en";
   setRelease(1);
   setBookings([
     trip(),
@@ -256,6 +267,32 @@ describe("<MyTripsPage> row actions", () => {
 
     expect(cancelBooking).not.toHaveBeenCalled();
     expect(screen.getByTestId("trips-selection-count")).toHaveTextContent("1 selected");
+  });
+
+  it("U-13 in French the labels translate but the hooks do not", () => {
+    state.locale = "fr-CA";
+    render(<MyTripsPage />);
+
+    expect(screen.getByRole("heading", { name: "Mes voyages" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Annuler" })).toHaveLength(4);
+    expect(screen.getByTestId("trips-cancel-selected")).toHaveTextContent(
+      "Annuler la sélection"
+    );
+
+    // The automation surface is language-independent on purpose: a suite
+    // written against data-testid keeps working in either locale, which is what
+    // makes a bilingual demo runnable rather than a second suite to maintain.
+    expect(screen.getAllByTestId("trip-select")).toHaveLength(4);
+    expect(screen.getByTestId("trips-table")).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-col="reference"]')).toHaveLength(4);
+  });
+
+  it("U-13a the cancelled badge translates too", () => {
+    state.locale = "fr-CA";
+    setBookings([trip({ id: "BK-GONE", status: "cancelled" }), trip()]);
+    render(<MyTripsPage />);
+    expect(within(rowWhere("BK-GONE").one).getByText("Annulé")).toBeInTheDocument();
+    expect(within(rowWhere("BK-DEMO1").one).getByText("Actif")).toBeInTheDocument();
   });
 
   it("U-11i the controls rot with Simulate New Release", () => {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useBooking, useRelease, useToast, type Booking } from "../providers";
+import { useBooking, useI18n, useRelease, useToast, type Booking } from "../providers";
 import ConfirmModal from "../components/ConfirmModal";
 import ETicketButton from "../components/ETicketButton";
 
@@ -23,6 +23,7 @@ export default function MyTripsPage() {
   const { bookings, cancelBooking } = useBooking();
   const { attrs, release } = useRelease();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [detailsOf, setDetailsOf] = useState<Booking | null>(null);
   const [confirmOf, setConfirmOf] = useState<Booking | null>(null);
   // Selection is keyed by booking reference, never by row index, so it survives
@@ -115,12 +116,12 @@ export default function MyTripsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">My trips</h1>
+      <h1 className="text-2xl font-semibold">{t("trips.title")}</h1>
 
       <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
         <input
           type="search"
-          placeholder="Filter by route, passenger, date…"
+          placeholder={t("trips.filter")}
           value={filter}
           onChange={(e) => {
             setFilter(e.target.value);
@@ -130,7 +131,7 @@ export default function MyTripsPage() {
           data-testid="trips-filter"
         />
         <div className="text-xs text-slate-500">
-          {total} trip{total === 1 ? "" : "s"} found
+          {t("trips.found", { count: total })}
         </div>
       </div>
 
@@ -142,10 +143,10 @@ export default function MyTripsPage() {
           onClick={() => setBulkOpen(true)}
           data-testid="trips-cancel-selected"
         >
-          Cancel selected
+          {t("trips.cancelSelected")}
         </button>
         <span className="text-xs text-slate-500" data-testid="trips-selection-count">
-          {selected.length} selected
+          {t("trips.selected", { count: selected.length })}
         </span>
       </div>
 
@@ -169,15 +170,15 @@ export default function MyTripsPage() {
                   onChange={toggleAllOnPage}
                 />
               </th>
-              {header("id", "Reference")}
-              {header("from", "From")}
-              {header("to", "To")}
-              {header("date", "Date")}
-              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Seat</th>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Bag</th>
-              {header("price", "Price")}
-              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Actions</th>
+              {header("id", t("trips.reference"))}
+              {header("from", t("trips.from"))}
+              {header("to", t("trips.to"))}
+              {header("date", t("trips.date"))}
+              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">{t("trips.seat")}</th>
+              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">{t("trips.bag")}</th>
+              {header("price", t("trips.price"))}
+              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">{t("trips.status")}</th>
+              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">{t("trips.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -212,7 +213,7 @@ export default function MyTripsPage() {
                         cancelled ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
                       }`}
                     >
-                      {cancelled ? "Cancelled" : "Active"}
+                      {cancelled ? t("trips.cancelled") : t("trips.active")}
                     </span>
                   </td>
                   <td className="px-3 py-2" data-col="actions">
@@ -223,7 +224,7 @@ export default function MyTripsPage() {
                         onClick={() => setDetailsOf(b)}
                         {...rowAttrs(attrs("trip-view"), b.id)}
                       >
-                        View
+                        {t("trips.view")}
                       </button>
                       <button
                         type="button"
@@ -232,13 +233,13 @@ export default function MyTripsPage() {
                         onClick={() => setConfirmOf(b)}
                         {...rowAttrs(attrs("trip-cancel"), b.id)}
                       >
-                        Cancel
+                        {t("trips.cancel")}
                       </button>
                       <ETicketButton
                         booking={b}
                         reference={b.id}
                         className="btn-ghost text-xs"
-                        label="E-ticket"
+                        label={t("trips.eticket")}
                       />
                     </div>
                   </td>
@@ -248,7 +249,7 @@ export default function MyTripsPage() {
             {pageSlice.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-3 py-8 text-center text-sm text-slate-500">
-                  No matching trips
+                  {t("trips.empty")}
                 </td>
               </tr>
             )}
@@ -258,7 +259,7 @@ export default function MyTripsPage() {
 
       <div className="mt-3 flex items-center justify-between text-sm">
         <div className="text-slate-500">
-          Page {safePage} of {totalPages}
+          {t("trips.page", { page: safePage, total: totalPages })}
         </div>
         <div className="flex gap-2">
           <button
@@ -268,7 +269,7 @@ export default function MyTripsPage() {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             data-testid="trips-prev"
           >
-            ‹ Prev
+            {t("trips.prev")}
           </button>
           <button
             type="button"
@@ -277,7 +278,7 @@ export default function MyTripsPage() {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             data-testid="trips-next"
           >
-            Next ›
+            {t("trips.next")}
           </button>
         </div>
       </div>

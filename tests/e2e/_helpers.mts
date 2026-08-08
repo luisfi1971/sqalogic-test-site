@@ -25,6 +25,13 @@ export { BASE_URL };
 
 export const DEMO = { email: "demo@sqalogic.ca", password: "demo123" };
 
+/**
+ * A second persona over the same flows. Her set is a different shape on
+ * purpose — fewer trips, one already cancelled — so a suite that quietly
+ * depends on the demo account's rows fails instead of passing by luck.
+ */
+export const MARIE = { email: "marie@sqalogic.ca", password: "demo123", name: "Marie Tremblay" };
+
 export function uniqueEmail(tag: string) {
   return `test_e2e_${tag}_${Date.now()}@sqatest.local`;
 }
