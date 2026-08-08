@@ -18,14 +18,23 @@ let vibe: Awaited<ReturnType<typeof launch>>["vibe"];
 let tmpDir: string;
 let oversized: string;
 
+/**
+ * Poll for the button rather than scanning once: scanning immediately after a
+ * navigation reads the page before it has hydrated, and the button simply is
+ * not there yet. Waiting on the condition, not on a duration.
+ */
 async function clickByText(re: RegExp) {
-  for (const b of await vibe.findAll("button")) {
-    if (re.test(await b.text())) {
-      await b.click();
-      return;
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    for (const b of await vibe.findAll("button")) {
+      if (re.test(await b.text())) {
+        await b.click();
+        return;
+      }
     }
+    await vibe.wait(150);
   }
-  throw new Error(`no button matching ${re}`);
+  throw new Error(`no button matching ${re} after 15s at ${await vibe.url()}`);
 }
 
 async function waitPath(p: string) {
