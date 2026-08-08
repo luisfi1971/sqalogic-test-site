@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { sha256 } from "./lib/hash";
+import { LATENCY_KEY, resolveLatency } from "./lib/latency";
 
 type User = { email: string; name: string };
 
@@ -47,9 +48,35 @@ type BookingCtx = {
   loading: boolean;
 };
 
+/**
+ * Latency mode. Off by default — a permanently slow site is a bad test bed,
+ * because it makes every suite slow without proving anything extra. Turned on
+ * with `?latency=1` at page load and remembered for the session, so it survives
+ * the five client-side hops of the booking flow; `?latency=0` turns it off.
+ */
+type LatencyCtx = {
+  latency: boolean;
+  setLatency: (on: boolean) => void;
+  /** A duration in latency mode, zero when the mode is off. */
+  scale: (ms: number) => number;
+  /** Resolves after a scaled delay, or immediately when the mode is off. */
+  wait: (ms: number) => Promise<void>;
+};
+
+export type ToastKind = "success" | "info" | "error";
+export type Toast = { id: number; message: string; kind: ToastKind };
+
+type ToastCtx = {
+  toasts: Toast[];
+  toast: (message: string, kind?: ToastKind) => void;
+  dismiss: (id: number) => void;
+};
+
 const AuthContext = createContext<AuthCtx | null>(null);
 const ReleaseContext = createContext<ReleaseCtx | null>(null);
 const BookingContext = createContext<BookingCtx | null>(null);
+const LatencyContext = createContext<LatencyCtx | null>(null);
+const ToastContext = createContext<ToastCtx | null>(null);
 
 export function useAuth() {
   const c = useContext(AuthContext);
@@ -66,6 +93,16 @@ export function useBooking() {
   if (!c) throw new Error("useBooking outside provider");
   return c;
 }
+export function useLatency() {
+  const c = useContext(LatencyContext);
+  if (!c) throw new Error("useLatency outside provider");
+  return c;
+}
+export function useToast() {
+  const c = useContext(ToastContext);
+  if (!c) throw new Error("useToast outside provider");
+  return c;
+}
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -73,6 +110,53 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [pending, setPending] = useState<Partial<Booking> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [latency, setLatencyState] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [hiddenBookings, setHiddenBookings] = useState<string[]>([]);
+  const toastSeq = useRef(0);
+
+  // Read `?latency=` once per page load, then fall back to the session value.
+  useEffect(() => {
+    try {
+      const on = resolveLatency(window.location.search, sessionStorage.getItem(LATENCY_KEY));
+      sessionStorage.setItem(LATENCY_KEY, on ? "1" : "0");
+      if (on) setLatencyState(true);
+    } catch {}
+  }, []);
+
+  const setLatency = useCallback((on: boolean) => {
+    setLatencyState(on);
+    try {
+      sessionStorage.setItem(LATENCY_KEY, on ? "1" : "0");
+    } catch {}
+  }, []);
+
+  const scale = useCallback((ms: number) => (latency ? ms : 0), [latency]);
+  const wait = useCallback(
+    (ms: number) => (latency ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve()),
+    [latency]
+  );
+
+  const dismiss = useCallback((id: number) => {
+    setToasts((list) => list.filter((t) => t.id !== id));
+  }, []);
+
+  const toast = useCallback<ToastCtx["toast"]>(
+    (message, kind = "success") => {
+      const id = ++toastSeq.current;
+      // In latency mode the toast lands late, so a test cannot assert it the
+      // instant the action fires — it has to wait for the text to appear.
+      const appearAfter = latency ? 900 : 0;
+      const life = latency ? 6000 : 4000;
+      const show = () => {
+        setToasts((list) => [...list, { id, message, kind }]);
+        setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), life);
+      };
+      if (appearAfter) setTimeout(show, appearAfter);
+      else show();
+    },
+    [latency]
+  );
 
   useEffect(() => {
     try {
@@ -217,6 +301,14 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       return;
     }
     setBookings((prev) => [{ ...b, status: b.status ?? "active" }, ...prev]);
+
+    // Eventual consistency: in latency mode the write lands but the read model
+    // lags, so the trip is missing from My Trips for a few seconds. That is the
+    // target for a reload-probe — poll-and-reload until it shows up.
+    if (latency) {
+      setHiddenBookings((ids) => [...ids, b.id]);
+      setTimeout(() => setHiddenBookings((ids) => ids.filter((x) => x !== b.id)), 3500);
+    }
   };
 
   const cancelBooking = async (id: string) => {
@@ -275,15 +367,28 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     () => ({ release, bump, dynId, dynClass, attrs, randomDelay }),
     [release, bump, dynId, dynClass, attrs, randomDelay]
   );
-  const bookingValue = useMemo<BookingCtx>(
-    () => ({ bookings, addBooking, cancelBooking, pending, setPending, loading }),
-    [bookings, pending, loading]
+  const visibleBookings = useMemo(
+    () => (hiddenBookings.length ? bookings.filter((b) => !hiddenBookings.includes(b.id)) : bookings),
+    [bookings, hiddenBookings]
   );
+  const bookingValue = useMemo<BookingCtx>(
+    () => ({ bookings: visibleBookings, addBooking, cancelBooking, pending, setPending, loading }),
+    [visibleBookings, pending, loading]
+  );
+  const latencyValue = useMemo<LatencyCtx>(
+    () => ({ latency, setLatency, scale, wait }),
+    [latency, setLatency, scale, wait]
+  );
+  const toastValue = useMemo<ToastCtx>(() => ({ toasts, toast, dismiss }), [toasts, toast, dismiss]);
 
   return (
     <AuthContext.Provider value={authValue}>
       <ReleaseContext.Provider value={releaseValue}>
-        <BookingContext.Provider value={bookingValue}>{children}</BookingContext.Provider>
+        <LatencyContext.Provider value={latencyValue}>
+          <ToastContext.Provider value={toastValue}>
+            <BookingContext.Provider value={bookingValue}>{children}</BookingContext.Provider>
+          </ToastContext.Provider>
+        </LatencyContext.Provider>
       </ReleaseContext.Provider>
     </AuthContext.Provider>
   );

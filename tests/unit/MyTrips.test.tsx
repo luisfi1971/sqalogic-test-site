@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   bookings: [] as unknown[],
   release: 1,
   cancelBooking: vi.fn(),
+  toast: vi.fn(),
 }));
 
 vi.mock("@app/providers", () => ({
@@ -35,11 +36,13 @@ vi.mock("@app/providers", () => ({
           : { "data-testid": base, id: `${base}_v${state.release}` },
     randomDelay: vi.fn(),
   }),
+  useToast: () => ({ toasts: [], toast: state.toast, dismiss: vi.fn() }),
 }));
 
 import MyTripsPage from "@app/my-trips/page";
 
 const cancelBooking = state.cancelBooking;
+const toast = state.toast;
 function setBookings(list: Booking[]) {
   state.bookings = list;
 }
@@ -77,6 +80,7 @@ function rowWhere(text: string) {
 
 beforeEach(() => {
   cancelBooking.mockClear();
+  toast.mockClear();
   setRelease(1);
   setBookings([
     trip(),
@@ -124,6 +128,14 @@ describe("<MyTripsPage> row actions", () => {
     await user.click(within(rowWhere("BK-DEMO2").one).getByRole("button", { name: "Cancel" }));
     await user.click(await screen.findByTestId("confirm-modal-ok"));
     expect(cancelBooking).toHaveBeenCalledExactlyOnceWith("BK-DEMO2");
+  });
+
+  it("U-11d2 confirming raises a toast naming the cancelled trip", async () => {
+    const user = userEvent.setup();
+    render(<MyTripsPage />);
+    await user.click(within(rowWhere("BK-DEMO2").one).getByRole("button", { name: "Cancel" }));
+    await user.click(await screen.findByTestId("confirm-modal-ok"));
+    expect(toast).toHaveBeenCalledExactlyOnceWith("Trip BK-DEMO2 cancelled", "info");
   });
 
   it("U-11e dismissing the dialog cancels nothing", async () => {
