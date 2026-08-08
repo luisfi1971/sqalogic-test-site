@@ -16,6 +16,17 @@ export default function Header() {
     setTimeout(() => setFlash(false), 1200);
   };
 
+  /**
+   * A real window.confirm, not a DOM modal. This is the target for the canon's
+   * nativeDialog slot, which was reserved with no way to prove it: a native
+   * dialog is categorically different from a modal in the page — it is not an
+   * element at all, it is an interruption of the browser, and it blocks script
+   * until it is answered.
+   */
+  const onLogout = () => {
+    if (window.confirm("Sign out of SQALOGIC Air?")) logout();
+  };
+
   return (
     <header className="border-b border-slate-200 bg-[color:var(--brand)] text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -29,7 +40,13 @@ export default function Header() {
           {user ? (
             <>
               <span className="hidden sm:inline opacity-80">Hi, {user.name.split(" ")[0]}</span>
-              <button onClick={logout} className="rounded bg-white/10 px-3 py-1 hover:bg-white/20">Logout</button>
+              <button
+                onClick={onLogout}
+                data-testid="logout"
+                className="rounded bg-white/10 px-3 py-1 hover:bg-white/20"
+              >
+                Logout
+              </button>
             </>
           ) : (
             <>
