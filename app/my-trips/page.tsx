@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useBooking, useRelease, useToast, type Booking } from "../providers";
 import ConfirmModal from "../components/ConfirmModal";
+import ETicketButton from "../components/ETicketButton";
 
 type SortKey = "date" | "price" | "from" | "to" | "id";
 
@@ -233,6 +234,12 @@ export default function MyTripsPage() {
                       >
                         Cancel
                       </button>
+                      <ETicketButton
+                        booking={b}
+                        reference={b.id}
+                        className="btn-ghost text-xs"
+                        label="E-ticket"
+                      />
                     </div>
                   </td>
                 </tr>
