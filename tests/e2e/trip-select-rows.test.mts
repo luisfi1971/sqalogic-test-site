@@ -99,8 +99,14 @@ describe("E2E: My Trips bulk selection", () => {
   });
 
   it("E-14 select-all takes the page, and the bulk dialog lists what it will act on", async () => {
+    // Derived, not hardcoded: the page holds as many rows as it holds, and
+    // seeding more trips must not turn this into a false failure.
+    const selectable = (await vibe.evaluate(
+      `Array.from(document.querySelectorAll('${TABLE} tbody tr [data-testid="trip-select"]')).filter(c => !c.disabled).length`
+    )) as number;
+
     await vibe.find('[data-testid="trips-select-all"]').click();
-    expect(await selectionCount()).toBe("4 selected");
+    expect(await selectionCount()).toBe(`${selectable} selected`);
 
     await vibe.find('[data-testid="trips-cancel-selected"]').click();
     await vibe.find('[data-testid="bulk-cancel-modal-ok"]').waitUntil("visible");
