@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useBooking } from "../providers";
 import Link from "next/link";
+import ETicketButton from "../components/ETicketButton";
 
 function Inner() {
   const sp = useSearchParams();
@@ -27,8 +28,9 @@ function Inner() {
         ) : (
           <p className="mt-2 text-sm text-slate-600">Booking {id} confirmed.</p>
         )}
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/my-trips" className="btn-primary">View my trips</Link>
+          {id && <ETicketButton booking={booking} reference={id} />}
           <Link href="/search" className="btn-ghost">Book another</Link>
         </div>
       </div>
