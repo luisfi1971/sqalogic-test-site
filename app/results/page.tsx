@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBooking, useLatency, useRelease } from "../providers";
 import Spinner from "../components/Spinner";
+import AirlineRating from "../components/AirlineRating";
 import { SETTLE_SWINGS, settlePrice } from "../lib/latency";
 
 type Flight = {
@@ -107,7 +108,10 @@ function ResultsInner() {
         {flights.map((f, i) => (
           <li key={f.id} className="card flex flex-wrap items-center justify-between gap-4" data-flight-id={f.id}>
             <div>
-              <div className="font-semibold">{f.airline}</div>
+              <div className="flex items-center gap-3">
+                <span className="font-semibold">{f.airline}</span>
+                <AirlineRating airline={f.airline} rating={2 + (i % 4)} />
+              </div>
               <div className="text-sm text-slate-600">
                 {f.depart} → {f.arrive} &middot; {f.duration} &middot;{" "}
                 {f.stops === 0 ? "Non-stop" : `${f.stops} stop`}
