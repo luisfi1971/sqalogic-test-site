@@ -101,7 +101,7 @@ describe("E2E: latency mode", () => {
 
     const index = (await vibe.evaluate(`
       Array.from(document.querySelectorAll('${TABLE} tbody tr'))
-        .findIndex(r => r.querySelector('td').textContent.trim() === '${RESTORE_ID}') + 1
+        .findIndex(r => r.querySelector('td[data-col="reference"]').textContent.trim() === '${RESTORE_ID}') + 1
     `)) as number;
     expect(index).toBeGreaterThan(0);
 
