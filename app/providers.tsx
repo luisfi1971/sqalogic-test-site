@@ -23,6 +23,8 @@ type ReleaseCtx = {
   randomDelay: () => Promise<void>;
 };
 
+export type BookingStatus = "active" | "cancelled";
+
 export type Booking = {
   id: string;
   flightId: string;
@@ -34,11 +36,13 @@ export type Booking = {
   createdAt: string;
   seat?: string | null;
   baggage?: boolean;
+  status?: BookingStatus;
 };
 
 type BookingCtx = {
   bookings: Booking[];
   addBooking: (b: Booking) => Promise<void>;
+  cancelBooking: (id: string) => Promise<void>;
   pending: Partial<Booking> | null;
   setPending: (b: Partial<Booking> | null) => void;
   loading: boolean;
@@ -137,6 +141,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               createdAt: b.created_at,
               seat: b.seat ?? null,
               baggage: !!b.baggage,
+              status: (b.status as BookingStatus) ?? "active",
             }))
           );
         }
@@ -205,13 +210,28 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       created_at: b.createdAt,
       seat: b.seat ?? null,
       baggage: !!b.baggage,
+      status: b.status ?? "active",
     };
     const { error } = await supabase.from("bookings").insert(row);
     if (error) {
       console.error("[bookings] insert error:", error);
       return;
     }
-    setBookings((prev) => [b, ...prev]);
+    setBookings((prev) => [{ ...b, status: b.status ?? "active" }, ...prev]);
+  };
+
+  const cancelBooking = async (id: string) => {
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", id);
+    if (error) {
+      console.error("[bookings] cancel error:", error);
+      return;
+    }
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b))
+    );
   };
 
   const bump = useCallback(async () => {
@@ -262,7 +282,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     [release, bump, dynId, dynClass, attrs, randomDelay]
   );
   const bookingValue = useMemo<BookingCtx>(
-    () => ({ bookings, addBooking, pending, setPending, loading }),
+    () => ({ bookings, addBooking, cancelBooking, pending, setPending, loading }),
     [bookings, pending, loading]
   );
 
