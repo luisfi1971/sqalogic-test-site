@@ -1,4 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SQALOGIC automation test site
+
+A deliberately imperfect flight-booking app used as a target for automated test
+generation and repair.
+
+## Test controls (for the automation side)
+
+Everything below is **per request** and **off by default** — a plain visit
+behaves exactly as it always has, including the global "Simulate New Release"
+counter.
+
+```
+/search?variant=none|id-rotation|text-change|type-change|moved-container|sibling-reorder|element-removed
+/search?variant=<name>&sticky=1     # also mirror into the sqa_variant cookie
+/search?delay=off|<ms>|seed:<n>     # pin the injected jitter for measurement
+/practice                           # archetype pages + a launcher for every variant
+```
+
+Full reference, including what each variant changes and why the design replaces
+an HTML-rewriting proxy: **[docs/TEST-CONTROLS.md](docs/TEST-CONTROLS.md)**.
 
 ## Getting Started
 
