@@ -12,15 +12,29 @@ export default function Home() {
           an account, book a trip, and then hit <em>Simulate New Release</em> to break the
           automation on purpose. See how well your tool self-heals.
         </p>
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/search" className="btn-primary">Search flights</Link>
           <Link href="/register" className="btn-ghost">Create account</Link>
+          <Link href="/practice" className="btn-ghost">Practice pages</Link>
         </div>
         <ul className="mt-8 space-y-2 text-sm text-slate-600">
           <li>&bull; User registration &amp; login</li>
           <li>&bull; Flight search, booking and payment simulation</li>
           <li>&bull; Intentionally tricky selectors (shifting IDs, nested DOM, missing labels)</li>
           <li>&bull; &quot;Simulate New Release&quot; button to rotate IDs and classes</li>
+          <li>
+            &bull;{" "}
+            <Link href="/practice" className="text-[color:var(--brand-accent)] underline">
+              Practice pages
+            </Link>{" "}
+            — data table, wizard, upload, typeahead, infinite scroll, iframe
+          </li>
+          <li>
+            &bull; Per-request breakage variants, e.g.{" "}
+            <code className="rounded bg-slate-100 px-1 text-xs">
+              /search?variant=text-change
+            </code>
+          </li>
         </ul>
       </div>
       <div className="card">
