@@ -26,6 +26,7 @@ export default function Header() {
         <nav className="flex items-center gap-2 sm:gap-4 text-sm">
           <Link href="/search" className="hover:underline">Search Flights</Link>
           <Link href="/my-trips" className="hover:underline">My Trips</Link>
+          <Link href="/practice" className="hover:underline">Practice</Link>
           {user ? (
             <>
               <span className="hidden sm:inline opacity-80">Hi, {user.name.split(" ")[0]}</span>

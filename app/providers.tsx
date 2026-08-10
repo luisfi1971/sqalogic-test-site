@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { sha256 } from "./lib/hash";
+import { DELAY_COOKIE, mulberry32, parseDelay, type DelayMode } from "./lib/testControls";
 
 type User = { email: string; name: string };
 
@@ -244,10 +245,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     [release]
   );
   const randomDelay = useCallback(async () => {
+    const mode = readDelayMode();
+    if (mode.kind === "off") return;
+    if (mode.kind === "fixed") return sleep(mode.ms);
+    // Historical behaviour below — this is what a request with no ?delay= gets.
     if (release < 2) return;
     const max = Math.min(150 + release * 100, 800);
-    const ms = Math.floor(Math.random() * max);
-    return new Promise<void>((r) => setTimeout(r, ms));
+    const roll = mode.kind === "seeded" ? nextSeeded(mode.seed) : Math.random();
+    const ms = Math.floor(roll * max);
+    return sleep(ms);
   }, [release]);
 
   const authValue = useMemo<AuthCtx>(() => ({ user, login, register, logout }), [user]);
@@ -273,4 +279,36 @@ function hash(s: string) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h.toString(36);
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
+
+/**
+ * Determinism switch for randomDelay(), resolved per call from the CURRENT url
+ * (then the opt-in cookie). Reading it at call time rather than caching it means
+ * two tabs pointed at different `?delay=` values behave differently, and no
+ * process-wide state is involved.
+ *
+ * Absent or unparseable → { kind: "default" } → the exact jitter the site has
+ * always had.
+ */
+function readDelayMode(): DelayMode {
+  if (typeof window === "undefined") return { kind: "default" };
+  const fromQuery = parseDelay(new URLSearchParams(window.location.search).get("delay"));
+  if (fromQuery) return fromQuery;
+  const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${DELAY_COOKIE}=([^;]*)`));
+  return parseDelay(m ? decodeURIComponent(m[1]) : null) ?? { kind: "default" };
+}
+
+// Per-seed PRNG cursors. Module scope in the BROWSER only (one page session per
+// tab), never on the server — randomDelay() returns early during SSR because
+// `window` is undefined, so no request can observe another request's cursor.
+const seedCursors = new Map<number, number>();
+
+function nextSeeded(seed: number): number {
+  const { value, next } = mulberry32(seedCursors.get(seed) ?? seed);
+  seedCursors.set(seed, next);
+  return value;
 }
