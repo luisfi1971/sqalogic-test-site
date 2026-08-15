@@ -38,6 +38,24 @@ export function isVariant(v: unknown): v is Variant {
   return typeof v === "string" && (VARIANTS as readonly string[]).includes(v);
 }
 
+/**
+ * The two id-mutation helpers every variant-aware page derives from the
+ * resolved variant. `tid` is for kebab-case `data-testid` values (suffix joined
+ * with `-`), `rid` for snake_case `id` attributes (suffix joined with `_`) —
+ * exactly the convention `/search` established. Under any variant other than
+ * `id-rotation` both are identity functions.
+ */
+export function variantIds(variant: Variant): {
+  tid: (base: string) => string;
+  rid: (base: string) => string;
+} {
+  const rotated = variant === "id-rotation";
+  return {
+    tid: (base: string) => (rotated ? `${base}-${ROTATED_SUFFIX}` : base),
+    rid: (base: string) => (rotated ? `${base}_${ROTATED_SUFFIX}` : base),
+  };
+}
+
 /** Unknown / missing values fall back to "none" — never throw on user input. */
 export function parseVariant(raw: unknown): Variant {
   const v = Array.isArray(raw) ? raw[0] : raw;

@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useBooking, useRelease } from "../providers";
+import { useBooking, useRelease, useWizard } from "../providers";
 
 type Flight = {
   id: string;
@@ -45,6 +45,7 @@ function ResultsInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const { setPending } = useBooking();
+  const { setWizard } = useWizard();
   const { release, dynClass } = useRelease();
 
   const from = sp.get("from") || "";
@@ -55,6 +56,20 @@ function ResultsInner() {
   const select = (f: Flight) => {
     setPending({ flightId: f.id, from, to, date, price: f.price });
     router.push("/book");
+  };
+
+  // Entry into the long multi-page booking wizard. Additive: the classic
+  // "Select" → /book → /payment short flow above is untouched.
+  const bookFull = (f: Flight) => {
+    setWizard({
+      flightId: f.id,
+      airline: f.airline,
+      from,
+      to,
+      date,
+      basePrice: f.price,
+    });
+    router.push("/booking/passenger");
   };
 
   // Intentionally put the Select button inside nested wrappers with no stable attrs on odd releases.
@@ -93,6 +108,13 @@ function ResultsInner() {
                   Select
                 </button>
               )}
+              <button
+                onClick={() => bookFull(f)}
+                className="btn-ghost"
+                data-testid={release < 3 ? `book-full-${i}` : undefined}
+              >
+                Full booking
+              </button>
             </div>
           </li>
         ))}
