@@ -1,45 +1,24 @@
-"use client";
+import { cookies } from "next/headers";
+import ConfirmationClient from "./ConfirmationClient";
+import { VARIANT_COOKIE, parseVariant } from "../lib/testControls";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { useBooking } from "../providers";
-import Link from "next/link";
-
-function Inner() {
-  const sp = useSearchParams();
-  const id = sp.get("id");
-  const { bookings } = useBooking();
-  const booking = bookings.find((b) => b.id === id);
+/**
+ * Server Component — per-request variant resolution, same contract as /search.
+ * A request with no ?variant= (and no opt-in cookie) renders exactly what this
+ * page always has.
+ */
+export default async function ConfirmationPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const cookieStore = await cookies();
+  const variant = parseVariant(sp.variant ?? cookieStore.get(VARIANT_COOKIE)?.value);
 
   return (
-    <div className="max-w-xl mx-auto">
-      <div className="card">
-        <h1 className="text-2xl font-semibold text-green-700">Booking confirmed!</h1>
-        {booking ? (
-          <div className="mt-4 space-y-1 text-sm">
-            <div>Reference: <strong data-testid="booking-ref">{booking.id}</strong></div>
-            <div>Flight: {booking.flightId}</div>
-            <div>Route: {booking.from} → {booking.to}</div>
-            <div>Date: {booking.date}</div>
-            <div>Passenger: {booking.passenger}</div>
-            <div>Total charged: <strong>${booking.price}</strong></div>
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-slate-600">Booking {id} confirmed.</p>
-        )}
-        <div className="mt-6 flex gap-3">
-          <Link href="/my-trips" className="btn-primary">View my trips</Link>
-          <Link href="/search" className="btn-ghost">Book another</Link>
-        </div>
-      </div>
+    <div data-variant={variant}>
+      <ConfirmationClient variant={variant} />
     </div>
-  );
-}
-
-export default function ConfirmationPage() {
-  return (
-    <Suspense fallback={<div>Loading…</div>}>
-      <Inner />
-    </Suspense>
   );
 }
