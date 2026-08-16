@@ -44,9 +44,52 @@ type BookingCtx = {
   loading: boolean;
 };
 
+/**
+ * Draft state for the long multi-page booking wizard
+ * (/booking/passenger → seats → extras → review). Crosses pages the same way
+ * `pending` always has — React context in this provider, in-memory for the
+ * session. The review step folds the draft into `pending` for /payment.
+ */
+export type WizardDraft = {
+  // flight (set on /results via "Full booking")
+  flightId: string;
+  airline: string;
+  from: string;
+  to: string;
+  date: string;
+  basePrice: number;
+  // passenger details
+  title?: string;
+  firstName?: string;
+  lastName?: string;
+  birthDate?: string;
+  passport?: string;
+  nationality?: string;
+  email?: string;
+  phone?: string;
+  frequentFlyer?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+  // seat
+  seat?: string | null;
+  seatFee?: number;
+  // extras
+  baggage?: "none" | "one" | "two";
+  meal?: string;
+  insurance?: "yes" | "no";
+  priorityBoarding?: boolean;
+  wifi?: boolean;
+};
+
+type WizardCtx = {
+  wizard: Partial<WizardDraft> | null;
+  setWizard: (w: Partial<WizardDraft> | null) => void;
+};
+
 const AuthContext = createContext<AuthCtx | null>(null);
 const ReleaseContext = createContext<ReleaseCtx | null>(null);
 const BookingContext = createContext<BookingCtx | null>(null);
+const WizardContext = createContext<WizardCtx | null>(null);
 
 export function useAuth() {
   const c = useContext(AuthContext);
@@ -63,12 +106,18 @@ export function useBooking() {
   if (!c) throw new Error("useBooking outside provider");
   return c;
 }
+export function useWizard() {
+  const c = useContext(WizardContext);
+  if (!c) throw new Error("useWizard outside provider");
+  return c;
+}
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [release, setRelease] = useState(1);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [pending, setPending] = useState<Partial<Booking> | null>(null);
+  const [wizard, setWizard] = useState<Partial<WizardDraft> | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -265,11 +314,14 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     () => ({ bookings, addBooking, pending, setPending, loading }),
     [bookings, pending, loading]
   );
+  const wizardValue = useMemo<WizardCtx>(() => ({ wizard, setWizard }), [wizard]);
 
   return (
     <AuthContext.Provider value={authValue}>
       <ReleaseContext.Provider value={releaseValue}>
-        <BookingContext.Provider value={bookingValue}>{children}</BookingContext.Provider>
+        <BookingContext.Provider value={bookingValue}>
+          <WizardContext.Provider value={wizardValue}>{children}</WizardContext.Provider>
+        </BookingContext.Provider>
       </ReleaseContext.Provider>
     </AuthContext.Provider>
   );

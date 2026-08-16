@@ -72,12 +72,48 @@ collide. Two runs sharing one profile can — use the query parameter for those.
 
 ### Scope
 
-Variants currently affect **`/search`** only. To bring another page in: make its
-`page.tsx` a Server Component, resolve the variant with `parseVariant` from
-`app/lib/testControls.ts` exactly as `app/search/page.tsx` does, and hand it to
-the client component as a prop. Resolving it in a client component instead would
-put it back outside the RSC payload, which is the bug this design exists to
-avoid.
+Variants affect **`/search`**, the long-booking wizard pages
+(**`/booking/passenger`**, **`/booking/seats`**, **`/booking/extras`**,
+**`/booking/review`**), **`/payment`** and **`/confirmation`**. To bring another
+page in: make its `page.tsx` a Server Component, resolve the variant with
+`parseVariant` from `app/lib/testControls.ts` exactly as `app/search/page.tsx`
+does, and hand it to the client component as a prop. Resolving it in a client
+component instead would put it back outside the RSC payload, which is the bug
+this design exists to avoid. Derive `tid`/`rid` with `variantIds()` from the
+same module.
+
+Because in-page navigation drops the query string, a run that wants one variant
+across the whole chain should enter with `&sticky=1`
+(e.g. `/search?variant=id-rotation&sticky=1`) so every subsequent page resolves
+the same value from the cookie.
+
+### The long booking wizard (~40 interactable steps)
+
+`search → results ("Full booking" on a row) → /booking/passenger →
+/booking/seats → /booking/extras → /booking/review → /payment → /confirmation`.
+
+Draft state crosses the wizard pages via React context (`useWizard` in
+`app/providers.tsx`); the review step folds it into the classic `pending`
+booking that `/payment` and `/confirmation` have always consumed. The classic
+short flow (`Select` → `/book` → `/payment`) is untouched.
+
+Per-page hooks (all rotate under `id-rotation`; every page echoes
+`data-variant` on its wrapper and renders `[data-testid="booking-steps"]`):
+
+| Page | Key testids | Designated `element-removed` | `sibling-reorder` swap | `moved-container` target |
+| --- | --- | --- | --- | --- |
+| `/booking/passenger` | `passenger-form`, `passenger-title`, `passenger-first-name`, `passenger-last-name`, `passenger-birth-date`, `passenger-passport`, `passenger-nationality`, `passenger-email`, `passenger-phone`, `passenger-frequent-flyer`, `passenger-emergency-name`, `passenger-emergency-phone`, `passenger-errors`, `passenger-error-<field>`, `passenger-flight-summary`, `passenger-continue` | emergency phone input (validation then blocks the flow) | first ↔ last name | passport field → `section[data-section="identity"] > fieldset` |
+| `/booking/seats` | `seats-grid`, `seat-<rowcol>` (e.g. `seat-3C`), `seats-selected`, `seats-remaining`, `seats-total`, `seats-error`, `seats-continue` | selected-seat indicator | selected ↔ remaining tiles | grid → `section[data-section="cabin"] > div` |
+| `/booking/extras` | `extras-baggage-none/one/two`, `extras-meal`, `extras-insurance-yes/no`, `extras-priority`, `extras-wifi`, `extras-addons-total`, `extras-total`, `extras-continue` | meal select | baggage ↔ meal groups | insurance group → `section[data-section="coverage"] > fieldset` |
+| `/booking/review` | `review-flight`, `review-route`, `review-date`, `review-passenger`, `review-passport`, `review-nationality`, `review-email`, `review-seat`, `review-baggage`, `review-meal`, `review-insurance`, `review-addons`, `review-total`, `review-continue` | seat row | flight ↔ passenger blocks | total row → `section[data-section="pricing"] > div` |
+| `/payment` | `payment-total`, `payment-card`, `payment-name`, `payment-expiry`, `payment-cvv` (release < 2 only; shadow DOM after), `payment-error`, `pay-submit` | pay control | expiry ↔ CVV | card number field → `section[data-section="card-details"] > fieldset` |
+| `/confirmation` | `booking-ref`, `confirm-flight`, `confirm-passenger`, `confirm-seat`, `confirm-total` | seat row | passenger ↔ seat rows | reference row → `section[data-section="record"] > div` |
+
+`text-change` rewrites each page's heading and primary CTA copy;
+`type-change` flips the primary CTA `<button>` ↔ `div[role="button"]`
+(on `/confirmation`, `<a>` ↔ `span[role="link"]`). Card number, expiry and CVV
+on `/payment` are input-masked (groups of four / auto-`MM/YY` slash / digits
+only); typing unmasked values normalises to the masked form.
 
 ### Relationship to "Simulate New Release"
 
