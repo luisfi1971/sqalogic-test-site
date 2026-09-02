@@ -111,3 +111,107 @@ export function feedPage(offset: number, limit: number): { items: FeedItem[]; to
   }
   return { items, total: FEED_TOTAL };
 }
+
+/* ------------------------------------------------------------------ *
+ * ACCOUNTS RECEIVABLE — fixtures for the MARKED ROW ACTION archetype.
+ *
+ * Every other repeated element on this site tells its rows apart by what they
+ * SHOW: seat labels differ, flight times differ, deal titles differ. That is
+ * the unusual case. In most business software the row action reads the same on
+ * every row — "View" on every invoice, "Remind" on every overdue account — and
+ * the only thing separating one row's control from another's is the mark the
+ * developer put on it.
+ *
+ * The three lists below are that case and its boundary, deliberately:
+ *
+ *   INVOICES   marked with `data-testid`     — the conventional mark, and the
+ *                                              rarest one in the wild: a
+ *                                              testid only exists where
+ *                                              somebody wrote tests first
+ *   REMINDERS  marked with `data-invoice-id` — a mark that is NOT a testid,
+ *                                              which is how most applications
+ *                                              actually key a row
+ *   RECEIPTS   not marked at all             — and legitimately: an
+ *                                              unallocated receipt has no
+ *                                              invoice to key it by yet, which
+ *                                              is the whole reason it sits in
+ *                                              this list
+ * ------------------------------------------------------------------ */
+
+const COMPANIES = [
+  "Northwind Foods",
+  "Aurora Dental",
+  "Beaumont & Kerr",
+  "Cedarline Logistics",
+  "Delta Print Works",
+  "Everly Interiors",
+  "Foxbridge Legal",
+  "Granite Roofing",
+  "Halcyon Media",
+  "Ironvale Metals",
+  "Juniper Clinics",
+  "Kestrel Marine",
+];
+
+const METHODS = ["Wire", "Cheque", "Card", "Direct debit"] as const;
+const INVOICE_STATES = ["Sent", "Overdue", "Part paid"] as const;
+
+export type Invoice = {
+  /** INV-2041 … INV-2052. What the row's own control is marked with. */
+  ref: string;
+  customer: string;
+  issued: string;
+  due: string;
+  amount: number;
+  state: (typeof INVOICE_STATES)[number];
+};
+
+export const INVOICES: Invoice[] = Array.from({ length: 12 }, (_, i) => {
+  const a = h(i, 21);
+  const b = h(i, 22);
+  return {
+    ref: `INV-${2041 + i}`,
+    customer: COMPANIES[a % COMPANIES.length],
+    issued: isoDate(i * 3),
+    due: isoDate(i * 3 + 30),
+    amount: 480 + (b % 9400),
+    state: INVOICE_STATES[a % INVOICE_STATES.length],
+  };
+});
+
+export type Reminder = {
+  /** INV-3155 … INV-3165. Carried on the row's control as `data-invoice-id`. */
+  ref: string;
+  customer: string;
+  daysLate: number;
+  amount: number;
+};
+
+export const REMINDERS: Reminder[] = Array.from({ length: 11 }, (_, i) => {
+  const a = h(i, 31);
+  const b = h(i, 32);
+  return {
+    ref: `INV-${3155 + i}`,
+    customer: COMPANIES[(a + 5) % COMPANIES.length],
+    daysLate: 4 + (b % 90),
+    amount: 260 + (a % 6100),
+  };
+});
+
+export type Receipt = {
+  received: string;
+  payer: string;
+  amount: number;
+  method: (typeof METHODS)[number];
+};
+
+export const RECEIPTS: Receipt[] = Array.from({ length: 10 }, (_, i) => {
+  const a = h(i, 41);
+  const b = h(i, 42);
+  return {
+    received: isoDate(120 + i * 2),
+    payer: `${FIRST[a % FIRST.length]} ${LAST[b % LAST.length]}`,
+    amount: 95 + (b % 1800),
+    method: METHODS[a % METHODS.length],
+  };
+});
