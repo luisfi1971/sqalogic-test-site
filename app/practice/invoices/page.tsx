@@ -33,9 +33,15 @@ import { INVOICES, RECEIPTS, REMINDERS } from "../data";
  * (3) is the honest negative. An unallocated receipt has no invoice to key it
  * by — that is the entire reason it is sitting in this list — so there is
  * genuinely nothing to mark the row's control with, and no amount of looking
- * harder will find one. A tool asked to offer a choice here must offer
- * nothing rather than invent one. The rows still differ in what they SHOW
- * (payer, amount, date), so those are addressable; the ACTION is not.
+ * harder will find one. A tool asked to offer a choice here must offer nothing
+ * rather than invent one.
+ *
+ * Two things measured off the rendered page, not intended: the received DATE
+ * and the AMOUNT are distinct on all ten rows, so those parts stay addressable
+ * by what they show; the PAYER NAME is not — ten receipts, four distinct
+ * names, because repeat payers are exactly who forgets to quote an invoice
+ * number. A person's name identifies nobody, which is why applications mark
+ * rows at all.
  */
 
 type Logged = { what: string; which: string } | null;

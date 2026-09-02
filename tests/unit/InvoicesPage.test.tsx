@@ -57,6 +57,23 @@ describe("/practice/invoices — marked row actions", () => {
     }
   });
 
+  it("the unallocated receipts differ by date and amount, but NOT by payer", () => {
+    // Measured off the rendered page, and pinned because an automation tool
+    // downstream asserts exactly this: the parts of the row that vary stay
+    // addressable by what they show, and the payer name is not one of them —
+    // ten receipts carry four distinct names, because repeat payers are
+    // exactly who forgets to quote an invoice number. A person's name
+    // identifies nobody, which is why applications mark rows at all.
+    render(<InvoicesPage />);
+    const rows = Array.from(
+      document.querySelectorAll('[data-testid="unallocated-receipts"] > div'),
+    );
+    const payers = rows.map((r) => r.querySelector(".font-semibold")?.textContent ?? "");
+    const amounts = rows.map((r) => r.querySelector(".text-lg")?.textContent ?? "");
+    expect(new Set(amounts).size).toBe(rows.length);
+    expect(new Set(payers).size).toBeLessThan(rows.length);
+  });
+
   it("each list is long enough to be a real list, not a sample of one", () => {
     render(<InvoicesPage />);
     expect(

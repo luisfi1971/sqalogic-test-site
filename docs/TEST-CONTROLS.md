@@ -201,8 +201,17 @@ framework or its developers chose — `data-id`, `data-row-id`, `data-key`,
 The last one is the honest negative, and the absence is the domain rather than a
 puzzle: an unallocated receipt has no invoice to key it by, which is the entire
 reason it is in that list. A tool asked to offer a way of picking one of those
-ten buttons must offer nothing. Their rows still differ in what they SHOW —
-payer, date, amount — so those parts are addressable; the action is not.
+ten buttons must offer nothing.
+
+Two further properties of that list, both measured off the rendered page rather
+than intended:
+
+- the **received date** and the **amount** are distinct across all ten rows, so
+  those parts of the row remain addressable by what they show — the refusal is
+  about the action, not about the list;
+- the **payer name** is not: ten receipts carry four distinct names, because
+  repeat payers are exactly who forgets to quote an invoice number. A person's
+  name identifies nobody, which is the reason applications mark rows at all.
 
 ### The one deliberately unlabelled control
 
