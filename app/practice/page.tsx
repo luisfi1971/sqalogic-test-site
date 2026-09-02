@@ -8,6 +8,12 @@ const PAGES = [
       "137 reservations with column sorting, a text filter, page-size control and pagination. The most common real-world automation target.",
   },
   {
+    href: "/practice/invoices",
+    title: "Marked row actions",
+    blurb:
+      "Accounts receivable. Every row's button reads the same word — View, Remind, Match — so the only thing telling one row from another is the mark on its control. One list marked with data-testid, one with data-invoice-id, and one marked with nothing at all.",
+  },
+  {
     href: "/practice/wizard",
     title: "Multi-step wizard",
     blurb:
