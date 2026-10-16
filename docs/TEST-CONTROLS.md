@@ -165,6 +165,7 @@ covering automation archetypes the booking flow does not exercise.
 | Route | Archetype | Notable hooks |
 | --- | --- | --- |
 | `/practice/table` | Data table — 137 rows, sortable columns, text filter, page-size selector, pagination | `[data-testid="reservations-table"]`, `[data-testid="table-filter"]`, `[data-sort-key]`, `th[aria-sort]`, `[data-testid="table-page-indicator"]` |
+| `/practice/invoices` | Marked row actions — three lists whose row action reads the same word on every row (`View` ×12, `Remind` ×11, `Match` ×10). The action's mark is the only thing separating the rows | `[data-testid="invoice-register"]`, `[data-testid^="invoice-view-"]`, `[data-testid="reminder-list"]`, `button[data-invoice-id]`, `[data-testid="unallocated-receipts"]`, `[data-testid="ar-last-action"]` |
 | `/practice/wizard` | 4-step wizard carrying state, per-step validation, free back-navigation, review step | `[data-testid="wizard-panel"][data-step]`, `[data-testid="wizard-errors"]`, `[data-review]`, `[data-testid="wizard-reference"]` |
 | `/practice/upload` | File upload with a validation failure path (wrong extension, over 2 MB, nothing attached) | `[data-testid="upload-input"]`, `[data-testid="upload-error"]`, `[data-testid="upload-attached"]`, `[data-testid="upload-ok"]` |
 | `/practice/autocomplete` | Async typeahead, ~300 ms debounce, arrow keys / Enter / Escape, `role=combobox` + `aria-activedescendant` | `[data-testid="autocomplete-input"]`, `#ac-listbox [role="option"]`, `[data-testid="autocomplete-loading"]` |
@@ -174,6 +175,43 @@ covering automation archetypes the booking flow does not exercise.
 All fixtures are pure functions of a fixed seed (`app/practice/data.ts`) — no
 `Math.random()`, no `Date.now()` — so rows are identical on every render and in
 every run.
+
+### Row actions that read the same on every row
+
+`/practice/invoices` is the only page here whose repeated element cannot be
+addressed by what a person reads. Every other list on this site distinguishes its
+rows by their contents — a seat says `1A`, a flight says `04:18 → 06:36`, a deal
+says `Deal #7`. An invoice register says **View** twelve times, because a button
+reading "View INV-2044" would be a worse product.
+
+Three lists, and the third matters as much as the first two:
+
+| Section | Rows | Action text | Mark on the action |
+| --- | --- | --- | --- |
+| Outstanding invoices | 12 (`<table>`) | `View` | `data-testid="invoice-view-INV-2041"` … |
+| Payment reminders due | 11 (`<ul>`) | `Remind` | `data-invoice-id="INV-3155"` … — **no `data-testid`** |
+| Unallocated receipts | 10 (`<div>` stack, no list semantics) | `Match` | **none** |
+
+The middle one is the realistic case. `data-testid` exists only where somebody
+wrote tests first; every other application keys its rows with whatever its
+framework or its developers chose — `data-id`, `data-row-id`, `data-key`,
+`data-invoice-id` — and `/practice/feed` already does the same thing with
+`data-deal-id`.
+
+The last one is the honest negative, and the absence is the domain rather than a
+puzzle: an unallocated receipt has no invoice to key it by, which is the entire
+reason it is in that list. A tool asked to offer a way of picking one of those
+ten buttons must offer nothing.
+
+Two further properties of that list, both measured off the rendered page rather
+than intended:
+
+- the **received date** and the **amount** are distinct across all ten rows, so
+  those parts of the row remain addressable by what they show — the refusal is
+  about the action, not about the list;
+- the **payer name** is not: ten receipts carry four distinct names, because
+  repeat payers are exactly who forgets to quote an invoice number. A person's
+  name identifies nobody, which is the reason applications mark rows at all.
 
 ### The one deliberately unlabelled control
 
