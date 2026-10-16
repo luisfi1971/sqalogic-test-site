@@ -43,6 +43,24 @@ const PAGES = [
     blurb:
       "A support ticket form in a same-origin iframe. Fill it inside the frame, then read the ticket reference in the parent page.",
   },
+  {
+    href: "/practice/todos",
+    title: "Hash-routed task list",
+    blurb:
+      "A single-page task list: Enter adds, filters are #/ links with no page load, an items-left counter, Clear completed. The list and footer only exist after the first item, and the heading and input live in the app's own header inside a section, not in site chrome. Deep link #/completed works.",
+  },
+  {
+    href: "/practice/hobbies",
+    title: "Multi-select checkbox group",
+    blurb:
+      "A labelled group of hobbies where any number apply. The group label is a plain caption, not a native legend.",
+  },
+  {
+    href: "/practice/location",
+    title: "Dependent lists",
+    blurb:
+      "State then City. The city list is disabled until a state is chosen, and changing the state clears the city.",
+  },
 ];
 
 const VARIANT_LINKS: { variant: string; what: string }[] = [
