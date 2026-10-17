@@ -6,10 +6,15 @@
  *   - twin FIELDS: every row's Action cell holds two buttons that both read
  *     «Go»; only `data-op` (approve / reject) tells them apart;
  *   - twin LISTS: two lists of the same three links under no heading, in no
- *     named region; only `data-region` (north / south) tells them apart.
+ *     named region; only `data-region` (north / south) tells them apart;
+ *   - TRUE twins (c1d412ad): every row of the `queue` table holds two «Go»
+ *     buttons that carry NOTHING different — no attribute, no class, no text.
  *
- * A tool must never merge them and never name them by position: it asks which
- * property tells them apart, and once told, keeps them apart for good.
+ * A tool must never merge them and never name them by position on its own.
+ * Where a property each carries tells them apart (data-op, data-region), the
+ * learn records them apart by it with no question. Where nothing does (the
+ * Queue), only a person can: the walk asks «separate, by place — or one
+ * control?», and once told keeps them apart for good.
  */
 const REQUESTS = [
   { ref: "REQ-1041", who: "Amara Okafor" },
@@ -45,6 +50,31 @@ export default function TwinsPage() {
                   Go
                 </button>
                 <button type="button" className="btn" data-op="reject">
+                  Go
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* No heading: the page carries none (the lists below must sit under nothing). */}
+      <table className="mt-8 text-sm" data-testid="queue">
+        <thead>
+          <tr>
+            <th className="pr-6 text-left">Reference</th>
+            <th className="text-left">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {REQUESTS.map((r) => (
+            <tr key={r.ref}>
+              <td className="pr-6">{r.ref}</td>
+              <td className="space-x-2">
+                <button type="button" className="btn">
+                  Go
+                </button>
+                <button type="button" className="btn">
                   Go
                 </button>
               </td>

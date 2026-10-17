@@ -77,4 +77,18 @@ describe("/practice/twins — only an attribute tells them apart", () => {
     );
     expect(document.querySelectorAll("h2, h3").length).toBe(0);
   });
+
+  it("the Queue's two buttons per row carry NOTHING different — the true twins only a person can tell apart", () => {
+    render(<TwinsPage />);
+    const rows = document.querySelectorAll('[data-testid="queue"] tbody tr');
+    expect(rows.length).toBe(4);
+    for (const row of Array.from(rows)) {
+      const buttons = Array.from(row.querySelectorAll("button"));
+      expect(buttons).toHaveLength(2);
+      const [a, b] = buttons.map((el) =>
+        Array.from(el.attributes, (at) => `${at.name}=${at.value}`).sort().join(" ") + "|" + el.textContent,
+      );
+      expect(a).toBe(b);
+    }
+  });
 });
