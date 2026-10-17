@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+tests
+docs
+*.tsbuildinfo
+.metadata_never_index
+pnpm-lock.yaml
+pnpm-workspace.yaml
