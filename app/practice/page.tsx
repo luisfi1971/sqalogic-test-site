@@ -61,6 +61,18 @@ const PAGES = [
     blurb:
       "State then City. The city list is disabled until a state is chosen, and changing the state clears the city.",
   },
+  {
+    href: "/practice/sibling-lists",
+    title: "Lists told apart by where they are",
+    blurb:
+      "Six link lists of the same kind: three under their own section headings, two in named navigations (Primary, Secondary), one inside a handled sidebar (#related). Only what surrounds a list tells it apart. ?heading=renamed rewords one heading.",
+  },
+  {
+    href: "/practice/twins",
+    title: "Twins only an attribute tells apart",
+    blurb:
+      "The one deliberate exception to sane names: every row has two buttons that both read Go (data-op approve/reject), and two identical link lists differ only by data-region. Nothing a person reads tells them apart.",
+  },
 ];
 
 const VARIANT_LINKS: { variant: string; what: string }[] = [
