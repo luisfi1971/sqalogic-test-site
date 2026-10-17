@@ -3,8 +3,8 @@
  *
  * `/practice/sibling-lists` and `/practice/twins` exist as targets for the
  * object map's identity rules, and they stay that target only while the
- * properties below hold. An ordinary tidy-up breaks them silently — a heading
- * added above the navigations, distinct labels on the twin buttons "for
+ * properties below hold. An ordinary tidy-up breaks them silently — the Footer
+ * moved above the guides, distinct labels on the twin buttons "for
  * accessibility", a data-testid on one list — so they are asserted here.
  */
 import { render } from "@testing-library/react";
@@ -16,7 +16,7 @@ const textsOf = (nodes: ArrayLike<Element>) =>
   Array.from(nodes, (n) => (n.textContent ?? "").trim());
 
 describe("/practice/sibling-lists — lists told apart by where they are", () => {
-  it("six link lists of one kind: three under headings, two in named navigations, one in a handled sidebar", () => {
+  it("six link lists of one kind: three under headings, two in named navigations (the Footer after an unrelated heading), one in an unlabelled, handled sidebar", () => {
     render(<SiblingLists />);
     const lists = document.querySelectorAll("ul");
     expect(lists.length).toBe(6);
@@ -27,17 +27,22 @@ describe("/practice/sibling-lists — lists told apart by where they are", () =>
     }
     expect(
       Array.from(document.querySelectorAll("nav"), (n) => n.getAttribute("aria-label")),
-    ).toEqual(["Primary", "Secondary"]);
-    expect(document.querySelectorAll("#related ul").length).toBe(1);
+    ).toEqual(["Primary", "Footer"]);
+    expect(document.querySelectorAll("aside#related ul").length).toBe(1);
+    expect(document.querySelector("aside#related")?.getAttribute("aria-label")).toBeNull();
     expect(textsOf(document.querySelectorAll("h3"))).toEqual([
       "Getting started",
       "Bookings",
       "Payments",
     ]);
-    // No heading precedes the navigations or the sidebar: a heading must not be what names them.
-    const first = document.querySelector("h1, h2, h3");
-    const nav = document.querySelector("nav");
-    expect(first && nav && first.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    // THE PINNED CASE: the Footer navigation comes AFTER the last guide heading
+    // («Payments», nested in the guides section) — a reader that takes the last
+    // heading of an earlier block would name it «Payments».
+    const payments = Array.from(document.querySelectorAll("h3")).at(-1);
+    const footer = document.querySelector('nav[aria-label="Footer"]');
+    expect(
+      payments && footer && payments.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("?heading=renamed rewords exactly one heading", () => {

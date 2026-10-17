@@ -65,7 +65,7 @@ const PAGES = [
     href: "/practice/sibling-lists",
     title: "Lists told apart by where they are",
     blurb:
-      "Six link lists of the same kind: three under their own section headings, two in named navigations (Primary, Secondary), one inside a handled sidebar (#related). Only what surrounds a list tells it apart. ?heading=renamed rewords one heading.",
+      "Six link lists of the same kind: three under their own section headings, two in named navigations (Primary, and a Footer that comes after the guides' last heading «Payments»), one inside an unlabelled sidebar with a handled id (#related). Only what surrounds a list tells it apart — never a heading nested in a neighbouring block. ?heading=renamed rewords one heading.",
   },
   {
     href: "/practice/twins",

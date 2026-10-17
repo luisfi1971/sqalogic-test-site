@@ -42,7 +42,7 @@ const PRIMARY: Array<[string, string]> = [
   ["/search", "Search"],
   ["/practice/table", "Table"],
 ];
-const SECONDARY: Array<[string, string]> = [
+const FOOTER: Array<[string, string]> = [
   ["/practice/todos", "Todos"],
   ["/practice/hobbies", "Hobbies"],
   ["/practice/location", "Location"],
@@ -71,35 +71,38 @@ function LinkList({ links }: { links: Array<[string, string]> }) {
 export function SiblingLists({ renamed = false }: { renamed?: boolean }) {
   return (
     <div>
-      {/*
-        The two navigations and the sidebar come FIRST, with no heading before
-        them: what tells them apart is their landmark name (Primary, Secondary)
-        and the handled ancestor (#related) — never a heading.
-      */}
-      <div className="flex flex-wrap gap-8 border-b pb-4">
-        <nav aria-label="Primary">
-          <LinkList links={PRIMARY} />
-        </nav>
-        <nav aria-label="Secondary">
-          <LinkList links={SECONDARY} />
-        </nav>
-        <div id="related">
+      <h1 className="text-2xl font-semibold">Guides index</h1>
+      <nav aria-label="Primary" className="mt-4">
+        <LinkList links={PRIMARY} />
+      </nav>
+      <div className="mt-6 grid gap-6 md:grid-cols-3">
+        <section className="md:col-span-2">
+          <h2 className="text-lg font-semibold">All guides</h2>
+          {GROUPS.map((g) => (
+            <div key={g.heading} className="mt-4">
+              <h3 className="font-medium">
+                {renamed && g.heading === "Bookings" ? "Reservations" : g.heading}
+              </h3>
+              <LinkList links={g.links} />
+            </div>
+          ))}
+        </section>
+        {/* An unlabelled sidebar: only its handled id tells its list apart. */}
+        <aside id="related">
           <div className="card">
             <LinkList links={RELATED} />
           </div>
-        </div>
+        </aside>
       </div>
-      <h1 className="mt-6 text-2xl font-semibold">Guides index</h1>
-      <section>
-        {GROUPS.map((g) => (
-          <div key={g.heading} className="mt-4">
-            <h3 className="font-medium">
-              {renamed && g.heading === "Bookings" ? "Reservations" : g.heading}
-            </h3>
-            <LinkList links={g.links} />
-          </div>
-        ))}
-      </section>
+      {/*
+        THE PINNED CASE: this navigation comes AFTER the guides, whose last
+        heading is «Payments». Nothing about «Payments» is this list's — it is
+        named by its own landmark («Footer»), never by a heading nested in a
+        neighbouring subtree.
+      */}
+      <nav aria-label="Footer" className="mt-8 border-t pt-4">
+        <LinkList links={FOOTER} />
+      </nav>
     </div>
   );
 }
