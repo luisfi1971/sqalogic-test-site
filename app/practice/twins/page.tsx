@@ -7,14 +7,19 @@
  *     «Go»; only `data-op` (approve / reject) tells them apart;
  *   - twin LISTS: two lists of the same three links under no heading, in no
  *     named region; only `data-region` (north / south) tells them apart;
- *   - TRUE twins (c1d412ad): every row of the `queue` table holds two «Go»
- *     buttons that carry NOTHING different — no attribute, no class, no text.
+ *   - twins told apart only by their CONTAINMENT CHAIN (c1d412ad; owner
+ *     2026-10-17: "impossible they are not distinguishable — parent, child
+ *     items, something would differ"): every row of the `queue` table holds
+ *     two «Go» buttons that carry nothing different THEMSELVES — the slot
+ *     each sits in does (`data-slot`); every row of the `holds` table holds
+ *     two identical «Go» buttons whose icon differs (`data-icon`, on the one
+ *     element inside each that carries it).
  *
- * A tool must never merge them and never name them by position on its own.
- * Where a property each carries tells them apart (data-op, data-region), the
- * learn records them apart by it with no question. Where nothing does (the
- * Queue), only a person can: the walk asks «separate, by place — or one
- * control?», and once told keeps them apart for good.
+ * A tool must never merge them and never name them by position. The learn
+ * offers what differs — on the control, around it, or inside it — the walk
+ * asks a person which property tells them apart, the answer joins the
+ * application's candidates, and every later learn keeps them apart with no
+ * question.
  */
 const REQUESTS = [
   { ref: "REQ-1041", who: "Amara Okafor" },
@@ -71,10 +76,40 @@ export default function TwinsPage() {
             <tr key={r.ref}>
               <td className="pr-6">{r.ref}</td>
               <td className="space-x-2">
+                <span data-slot="approve">
+                  <button type="button" className="btn">
+                    Go
+                  </button>
+                </span>
+                <span data-slot="reject">
+                  <button type="button" className="btn">
+                    Go
+                  </button>
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <table className="mt-8 text-sm" data-testid="holds">
+        <thead>
+          <tr>
+            <th className="pr-6 text-left">Reference</th>
+            <th className="text-left">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {REQUESTS.map((r) => (
+            <tr key={r.ref}>
+              <td className="pr-6">{r.ref}</td>
+              <td className="space-x-2">
                 <button type="button" className="btn">
+                  <span aria-hidden="true" data-icon="keep" />
                   Go
                 </button>
                 <button type="button" className="btn">
+                  <span aria-hidden="true" data-icon="release" />
                   Go
                 </button>
               </td>
