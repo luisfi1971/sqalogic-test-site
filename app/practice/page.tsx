@@ -50,6 +50,12 @@ const PAGES = [
       "A single-page task list: Enter adds, filters are #/ links with no page load, an items-left counter, Clear completed. The list and footer only exist after the first item, and the heading and input live in the app's own header inside a section, not in site chrome. Deep link #/completed works.",
   },
   {
+    href: "/practice/packing",
+    title: "Check, change, check again",
+    blurb:
+      "A packing list whose counter is on the page from the start — \"0 items packed\" — so a story can read it, add an item with the Add item button, and read it again. The box clears on every add.",
+  },
+  {
     href: "/practice/hobbies",
     title: "Multi-select checkbox group",
     blurb:

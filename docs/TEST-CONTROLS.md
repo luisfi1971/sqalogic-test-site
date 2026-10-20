@@ -171,6 +171,7 @@ covering automation archetypes the booking flow does not exercise.
 | `/practice/autocomplete` | Async typeahead, ~300 ms debounce, arrow keys / Enter / Escape, `role=combobox` + `aria-activedescendant` | `[data-testid="autocomplete-input"]`, `#ac-listbox [role="option"]`, `[data-testid="autocomplete-loading"]` |
 | `/practice/feed` | Infinite scroll — 200 items, 20 at a time, IntersectionObserver; rows do not exist in the DOM until scrolled | `[data-testid="deal-feed"]`, `[data-deal-id]`, `[data-testid="feed-count"]`, `[data-testid="feed-end"]` |
 | `/practice/iframe` | Form inside a same-origin iframe at `/embed/support`; the parent picks up the ticket reference via `postMessage` | `#support-frame`, inside the frame `[data-testid="support-form"]`, in the parent `[data-testid="parent-ticket-ref"]` |
+| `/practice/packing` | Check, change, check again — a counter on the page from the first render ("0 items packed"), an Item box and an Add item button; the box clears on every add | `[data-testid="packing-count"]` (`role=status`), `#packing-item`, `ul[aria-label="Packed items"]` |
 
 All fixtures are pure functions of a fixed seed (`app/practice/data.ts`) — no
 `Math.random()`, no `Date.now()` — so rows are identical on every render and in
