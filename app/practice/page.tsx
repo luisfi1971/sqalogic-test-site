@@ -74,6 +74,12 @@ const PAGES = [
       "Six link lists of the same kind: three under their own section headings, two in named navigations (Primary, and a Footer that comes after the guides' last heading «Payments»), one inside an unlabelled sidebar with a handled id (#related). Only what surrounds a list tells it apart — never a heading nested in a neighbouring block. ?heading=renamed rewords one heading.",
   },
   {
+    href: "/practice/after-the-press",
+    title: "After the press",
+    blurb:
+      "What a press leads to: an answer that lands after a 2-second request, one that appears after a 2-second timer, a saved-settings flash, a result line that is empty until a press fills it, three buttons that each open a different browser dialog, a progress bar whose percentage moves, and a notice dismissed by plain text.",
+  },
+  {
     href: "/practice/twins",
     title: "Twins only an attribute tells apart",
     blurb:
