@@ -80,6 +80,12 @@ const PAGES = [
       "What a press leads to: an answer that lands after a 2-second request, one that appears after a 2-second timer, a saved-settings flash, a result line that is empty until a press fills it, three buttons that each open a different browser dialog, a progress bar whose percentage moves, and a notice dismissed by plain text.",
   },
   {
+    href: "/practice/drawn-placeholders",
+    title: "Drawn placeholders",
+    blurb:
+      "Two pick fields with numbered ids and no placeholder attribute: each paints its hint (Choose a region, Choose a depot) inside its own box and points at it with aria-describedby, under one caption shared by both. The second is disabled until the first is chosen.",
+  },
+  {
     href: "/practice/twins",
     title: "Twins only an attribute tells apart",
     blurb:
