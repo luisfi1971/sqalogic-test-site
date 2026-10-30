@@ -91,6 +91,12 @@ const PAGES = [
     blurb:
       "The one deliberate exception to sane names: every row has two buttons that both read Go (data-op approve/reject), and two identical link lists differ only by data-region. Nothing a person reads tells them apart.",
   },
+  {
+    href: "/practice/icon-buttons",
+    title: "Icon-font buttons",
+    blurb:
+      "Buttons whose icon is a Private Use glyph drawn by CSS generated content, before, after and between words: the browser's name carries the glyph, a person reads Save draft, Login, Sign in. Beside them the longer twins Save draft as template and Login help.",
+  },
 ];
 
 const VARIANT_LINKS: { variant: string; what: string }[] = [
