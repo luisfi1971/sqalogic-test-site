@@ -86,6 +86,12 @@ const PAGES = [
       "Two pick fields with numbered ids and no placeholder attribute: each paints its hint (Choose a region, Choose a depot) inside its own box and points at it with aria-describedby, under one caption shared by both. The second is disabled until the first is chosen.",
   },
   {
+    href: "/practice/sort-by-listener",
+    title: "Sort by listener",
+    blurb:
+      "Two tables with the same headers. The first sorts when a header is clicked — a listener bound on each header cell, with no role, no button and no pointer cursor; the second does not sort at all.",
+  },
+  {
     href: "/practice/twins",
     title: "Twins only an attribute tells apart",
     blurb:
