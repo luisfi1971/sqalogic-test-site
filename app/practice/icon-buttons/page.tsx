@@ -6,7 +6,8 @@
  * INCLUDES it: «<U+E001> Save draft». A person reads «Save draft». Unicode
  * defines Private Use code points as carrying no meaning, so a tool must name
  * the control as a person reads it and still find exactly one control on
- * every engine — and never the longer twin «Save draft as template».
+ * every engine — and never the longer twin «Save draft as template». «Print»
+ * carries the glyph LITERALLY in its DOM text (U+E003), beside «Print preview».
  *
  * The glyph is drawn without loading any font file: the code point renders as
  * a box or nothing, and the accessible name is the same either way.
@@ -37,6 +38,15 @@ export default function IconButtonsPage() {
         </button>
         <button type="button" className="rounded border px-3 py-1">
           Login help
+        </button>
+        {/* A Private Use glyph written LITERALLY into the DOM text (not CSS
+            generated content): an XPath string value holds it, so an engine
+            that cannot strip it resolves by role and filters by the name. */}
+        <button type="button" className="rounded border px-3 py-1">
+          {'\uE003'} Print
+        </button>
+        <button type="button" className="rounded border px-3 py-1">
+          Print preview
         </button>
       </div>
     </div>
